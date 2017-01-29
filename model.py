@@ -31,9 +31,9 @@ def build_model(model_path, data_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Behavior cloning training')
-    parser.add_argument('model', type=str,
+    parser.add_argument('--model', dest='model', type=str,
                         help='Path to model definition json. Model weights should be on the same path.')
-    parser.add_argument('data', type=str,
+    parser.add_argument('--data', dest='data', type=str,
                         help='Path to data that should be used to train model')
     args = parser.parse_args()
     build_model(args.model, args.data)
