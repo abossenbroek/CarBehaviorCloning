@@ -4,10 +4,9 @@ import pandas as pd
 from skimage import io
 from skimage import transform
 
-from keras.models import Sequential, Model
+from keras.models import Model
 from keras.layers import Convolution2D
-from keras.layers import Activation, Dropout, Flatten, Dense, Input, Merge
-from keras.layers import MaxPooling2D, merge
+from keras.layers import Dropout, Flatten, Dense, Input, merge
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import PReLU
 
@@ -15,14 +14,13 @@ from keras.layers.advanced_activations import PReLU
 def load_images(files, data_path):
     def load_func(files):
         for fl in files:
-            img = transform.downscale_local_mean(io.imread('%s/%s' %
-                                                 (data_path, fl.strip())),
-                                       factors=(2,2,1))
+            img = io.imread('%s/%s' % (data_path, fl.strip()))
+            img = transform.downscale_local_mean(img, factors=(2, 2, 1))
             yield img
 
-    images = np.stack(load_func(files[0:100]), axis=-1)
+    images = np.stack(load_func(files), axis=-1)
     images = images.reshape([images.shape[3], images.shape[2],
-                           images.shape[0], images.shape[1]])
+                             images.shape[0], images.shape[1]])
     images = images.astype('float32')
     images = images/256.0
     return images
@@ -43,10 +41,10 @@ def build_model(model_path, data_path, epochs):
     print("right [%s, %s, %s, %s]" % (right_images.shape))
 
     # Load the training labels.
-    steering = drive_log['steering'][0:100]
-    throttle = drive_log['throttle'][0:100]
-    brake = drive_log['brake'][0:100]
-    speed = drive_log['speed'][0:100]
+    steering = drive_log['steering']
+    throttle = drive_log['throttle']
+    brake = drive_log['brake']
+    speed = drive_log['speed']
 
     left_img = Input(shape=(3, 80, 160), dtype='float32', name="left_img")
     left_input = BatchNormalization()(left_img)
@@ -91,14 +89,13 @@ def build_model(model_path, data_path, epochs):
                           brake_output, speed_output])
     model.compile(optimizer='adam', loss='mean_squared_error')
     model.fit(x=[left_images, center_images, right_images],
-               y=[steering, throttle, brake, speed],
+              y=[steering, throttle, brake, speed],
               nb_epoch=epochs, batch_size=100)
 
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
     print("About to save model to '%s'" % (model_json_file))
     print("About to save model weights to '%s'" % (model_weights_file))
-
 
     model_json = model.to_json()
     with open(model_json_file, "w") as json_file:
@@ -120,4 +117,3 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     build_model(args.model, args.data, args.epochs)
-
