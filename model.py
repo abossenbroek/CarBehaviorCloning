@@ -15,7 +15,7 @@ def load_images(files, data_path):
 
 
 def build_model(model_path, data_path):
-    drive_log = pd.read_csv("%s/driving_log.csv" % (model_path))
+    drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
 
     center_images = load_images(drive_log['center'], data_path)
     left_images = load_images(drive_log['left'], data_path)
