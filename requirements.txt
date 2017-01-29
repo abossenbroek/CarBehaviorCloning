@@ -1,0 +1,6 @@
+h5py
+pandas
+keras
+tensorflow
+numpy
+scikit-images
