@@ -33,6 +33,7 @@ def telemetry(sid, data):
     throttle = data["throttle"]
     # The current speed of the car
     speed = data["speed"]
+
     # The current image from the center camera of the car
     imgString = data["image"]
     image = Image.open(BytesIO(base64.b64decode(imgString)))
@@ -41,21 +42,20 @@ def telemetry(sid, data):
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     steering_angle = float(model.predict(transformed_image_array, batch_size=1))
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
-    throttle = 0.2
-    print(steering_angle, throttle)
-    send_control(steering_angle, throttle)
+    send_control(steering_angle, throttle, speed)
 
 
 @sio.on('connect')
 def connect(sid, environ):
     print("connect ", sid)
-    send_control(0, 0)
+    send_control(0, 0, 0)
 
 
-def send_control(steering_angle, throttle):
+def send_control(steering_angle, throttle, speed):
     sio.emit("steer", data={
-    'steering_angle': steering_angle.__str__(),
-    'throttle': throttle.__str__()
+        'steering_angle': steering_angle.__str__(),
+        'throttle': throttle.__str__(),
+        'speed': speed.__str__()
     }, skip_sid=True)
 
 
