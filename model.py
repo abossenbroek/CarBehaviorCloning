@@ -1,5 +1,5 @@
 import argparse
-import keras
+# import keras
 import numpy as np
 import pandas as pd
 from skimage import io
@@ -7,26 +7,22 @@ from skimage import io
 def load_images(files, data_path):
     def load_func(files):
         for fl in files:
-            img = io.imread("%s/%s" % (data_path, fl))
+            img = io.imread('%s/%s' % (data_path, fl.strip()))
             yield img
 
     return np.stack(load_func(files), axis=0)
 
 
-
 def build_model(model_path, data_path):
     drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
 
-    center_images = load_images(drive_log['center'], data_path)
+    print("Loading training images:")
     left_images = load_images(drive_log['left'], data_path)
+    print("left [%s, %s, %s, %s]" % (left_images.shape))
+    center_images = load_images(drive_log['center'], data_path)
+    print("center [%s, %s, %s, %s]" % (center_images.shape))
     right_images = load_images(drive_log['right'], data_path)
-
-    print("Found the following training images:")
-    print("left %s" % (left_images.shape))
-    print("center %s" % (center_images.shape))
-    print("right %s" % (right_images.shape))
-
-
+    print("right [%s, %s, %s, %s]" % (right_images.shape))
 
 
 if __name__ == '__main__':
