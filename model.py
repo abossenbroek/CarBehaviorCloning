@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 from skimage import io
 
-from keras.models import Sequential
-from keras.layers import Convolution2D, Model
-from keras.layers import Activation, Dropout, Flatten, Dense, Input, Merge, MaxPooling2D
+from keras.models import Sequential, Model
+from keras.layers import Convolution2D
+from keras.layers import Activation, Dropout, Flatten, Dense, Input, merge, MaxPooling2D
 
 
 def load_images(files, data_path):
@@ -14,7 +14,9 @@ def load_images(files, data_path):
             img = io.imread('%s/%s' % (data_path, fl.strip()))
             yield img
 
-    return np.stack(load_func(files), axis=-1)
+    images = np.stack(load_func(files[0:400]), axis=-1)
+    return images.reshape([images.shape[3], images.shape[2],
+                           images.shape[0], images.shape[1]])
 
 
 def build_model(model_path, data_path):
@@ -37,28 +39,29 @@ def build_model(model_path, data_path):
     brake = drive_log['brake']
     speed = drive_log['speed']
 
-    model = Sequential()
+
     left_input = Convolution2D(32, 3, 3, border_mode='same',
                                activation='relu',
-                               input_shape=left_images.shape[0:3])
+                               input_shape=left_images.shape[1:])
     right_input = Convolution2D(32, 3, 3, border_mode='same',
                                 activation='relu',
-                                input_shape=right_images.shape[0:3])
+                                input_shape=right_images.shape[1:])
     center_input = Convolution2D(32, 3, 3, border_mode='same',
                                  activation='relu',
-                                 input_shape=center_images.shape[0:3])
+                                 input_shape=center_images.shape[1:])
 
-    x = Merge([left_input, center_input, right_input], mode='concat')
-    x = Convolution2D(32, 3, 3, activation='relu')(x)
+    #x = merge([left_input, center_input, right_input], mode='concat')
+    x = Convolution2D(32, 3, 3, activation='relu')(left_input)
     x = MaxPooling2D(pool_size=(2, 2))(x)
-    x = model.add(Dropout(0.5))(x)
+    x = Dropout(0.5)(x)
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
     throttle_output = Dense(1, activation='linear', name='throttle_output')(x)
     brake_output = Dense(1, activation='linear', name='brake_output')(x)
     speed_output = Dense(1, activation='linear', name='speed_output')(x)
 
-    model = Model(input=[left_input, center_input, right_input],
+    #model = Model(input=[left_input, center_input, right_input],
+    model = Model(input=left_input,
                   output=[steering_output, throttle_output,
                           brake_output, speed_output])
     model.compile(optimizer='rmsprop', loss='mean_squared_error')
