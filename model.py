@@ -63,7 +63,7 @@ def build_model(model_path, data_path, epochs, load=MISSING):
     x = Dense(100)(x)
     x = Dense(50)(x)
     x = Dense(10)(x)
-    steering_output = Dense(1, activation='sigmoid', name='steering_output')(x)
+    steering_output = Dense(1, activation='linear', name='steering_output')(x)
     throttle_output = Dense(1, activation='linear', name='throttle_output')(x)
     speed_output = Dense(1, activation='linear', name='speed_output')(x)
 
@@ -75,9 +75,9 @@ def build_model(model_path, data_path, epochs, load=MISSING):
                       'throttle_output': 'mean_squared_logarithmic_error',
                       'speed_output': 'mean_squared_error'},
                   loss_weight={
-                      'steering_output': 0.5,
+                      'steering_output': 10,
                       'throttle_output': 0.2,
-                      'speed_output': 0.3})
+                      'speed_output': 1})
 
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
