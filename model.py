@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 import pandas as pd
 from skimage import io
-from skimage import transform
 
 from keras.models import Model
 from keras.layers import Convolution2D
