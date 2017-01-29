@@ -69,7 +69,15 @@ def build_model(model_path, data_path, epochs, load=MISSING):
 
     model = Model(input=center_img,
                   output=[steering_output, throttle_output, speed_output])
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.compile(optimizer='adam',
+                  loss={
+                      'steering_output': 'mean_squared_logarithmic_error',
+                      'throttle_output': 'mean_squared_logarithmic_error',
+                      'speed_output': 'mean_squared_error'},
+                  loss_weight={
+                      'steering_output': 0.5,
+                      'throttle_output': 0.2,
+                      'speed_output': 0.3})
 
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
