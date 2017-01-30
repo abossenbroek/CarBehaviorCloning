@@ -1,6 +1,8 @@
 h5py
 pandas
 keras
-tensorflow
 numpy
-scikit-images
+scikit-image
+python-socketio
+eventlet
+flask
