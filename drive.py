@@ -46,10 +46,13 @@ def telemetry(sid, data):
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     print(model.summary())
     print("about to call model.predict")
-    out = model.predict(image_array, batch_size=1, verbose=1)
-    print("Called model.predict")
-    print("Class of model output: %s" % (out.__class__))
-    steering_angle, throttle, speed = float(model.predict(transformed_image_array, batch_size=1))
+    print(image_array)
+
+    prediction = model.predict(image_array, batch_size=1, verbose=1)
+    steering_angle = prediction[0][0][0]
+    throttle = prediction[1][0][0]
+    speed = prediction[2][0][0]
+
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
     print(steering_angle, throttle, speed)
     send_control(steering_angle, throttle, speed)
