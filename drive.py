@@ -27,6 +27,7 @@ prev_image_array = None
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    print("telemetry")
     # The current steering angle of the car
     steering_angle = data["steering_angle"]
     # The current throttle of the car
@@ -39,9 +40,16 @@ def telemetry(sid, data):
     image = Image.open(BytesIO(base64.b64decode(imgString)))
     image_array = np.asarray(image)
     transformed_image_array = image_array[None, :, :, :]
+    print("about to call model.predict")
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
-    steering_angle = float(model.predict(transformed_image_array, batch_size=1))
+    print(model.summary())
+    print("about to call model.predict")
+    out = model.predict(transformed_image_array, batch_size=1, verbose=1)
+    print("Called model.predict")
+    print("Class of model output: %s" % (out.__class__))
+    steering_angle, throttle, speed = float(model.predict(transformed_image_array, batch_size=1))
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
+    print(steering_angle, throttle, speed)
     send_control(steering_angle, throttle, speed)
 
 
