@@ -42,11 +42,7 @@ def telemetry(sid, data):
     image_array = image_array.reshape(1, 3, 160, 320)
     image_array = image_array.astype('float32')
     image_array = image_array/256
-    print("about to call model.predict")
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
-    print(model.summary())
-    print("about to call model.predict")
-    print(image_array)
 
     prediction = model.predict(image_array, batch_size=1, verbose=1)
     steering_angle = prediction[0][0][0]
