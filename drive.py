@@ -39,14 +39,14 @@ def telemetry(sid, data):
     imgString = data["image"]
     image = Image.open(BytesIO(base64.b64decode(imgString)))
     image_array = np.asarray(image)
-    image = image.reshape(1, 3, 160, 320)
-    image = image.astype('float32')
-    image = image/256
+    image_array = image_array.reshape(1, 3, 160, 320)
+    image_array = image_array.astype('float32')
+    image_array = image_array/256
     print("about to call model.predict")
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
     print(model.summary())
     print("about to call model.predict")
-    out = model.predict(image, batch_size=1, verbose=1)
+    out = model.predict(image_array, batch_size=1, verbose=1)
     print("Called model.predict")
     print("Class of model output: %s" % (out.__class__))
     steering_angle, throttle, speed = float(model.predict(transformed_image_array, batch_size=1))
