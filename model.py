@@ -96,7 +96,7 @@ def build_model(model_path, data_path, epochs, load=MISSING):
 
     model_json = model.to_json()
     with open(model_json_file, "w") as json_file:
-        json_file.dump(model_json)
+        json_file.write(model_json)
 
     print("Succesfully saved JSON file")
     model.save_weights(model_weights_file)
