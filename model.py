@@ -5,7 +5,7 @@ from skimage import io
 
 from keras.models import Model
 from keras.layers import Convolution2D
-from keras.layers import Dropout, Flatten, Dense, Input, merge
+from keras.layers import Dropout, Flatten, Dense, Input
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import PReLU
 from keras.models import model_from_json
