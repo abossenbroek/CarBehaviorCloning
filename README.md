@@ -1,4 +1,4 @@
-# CarBehaviorCloning
+# Car Behaviour Cloning
 Behavior cloning of driving a car on a track.
 
 ## Install requirements
