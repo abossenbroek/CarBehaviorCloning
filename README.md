@@ -72,53 +72,18 @@ the details of this model next.
 
 ### NVidia model
 The NVidia model consists of the following architecture,
-`
-____________________________________________________________________________________________________
-Layer (type)                     Output Shape          Param #     Connected to
-====================================================================================================
-images (InputLayer)              (None, 3, 90, 320)    0
-____________________________________________________________________________________________________
-batchnormalization_1 (BatchNorma (None, 3, 90, 320)    1280        images[0][0]
-____________________________________________________________________________________________________
-convolution2d_1 (Convolution2D)  (None, 3, 90, 3)      24003       batchnormalization_1[0][0]
-____________________________________________________________________________________________________
-prelu_1 (PReLU)                  (None, 3, 90, 3)      810         convolution2d_1[0][0]
-____________________________________________________________________________________________________
-convolution2d_2 (Convolution2D)  (None, 3, 90, 24)     1824        prelu_1[0][0]
-____________________________________________________________________________________________________
-prelu_2 (PReLU)                  (None, 3, 90, 24)     6480        convolution2d_2[0][0]
-____________________________________________________________________________________________________
-convolution2d_3 (Convolution2D)  (None, 3, 90, 36)     21636       prelu_2[0][0]
-____________________________________________________________________________________________________
-prelu_3 (PReLU)                  (None, 3, 90, 36)     9720        convolution2d_3[0][0]
-____________________________________________________________________________________________________
-convolution2d_4 (Convolution2D)  (None, 3, 90, 48)     15600       prelu_3[0][0]
-____________________________________________________________________________________________________
-prelu_4 (PReLU)                  (None, 3, 90, 48)     12960       convolution2d_4[0][0]
-____________________________________________________________________________________________________
-convolution2d_5 (Convolution2D)  (None, 3, 90, 64)     27712       prelu_4[0][0]
-____________________________________________________________________________________________________
-prelu_5 (PReLU)                  (None, 3, 90, 64)     17280       convolution2d_5[0][0]
-____________________________________________________________________________________________________
-dropout_1 (Dropout)              (None, 3, 90, 64)     0           prelu_5[0][0]
-____________________________________________________________________________________________________
-flatten_1 (Flatten)              (None, 17280)         0           dropout_1[0][0]
-____________________________________________________________________________________________________
-dense_1 (Dense)                  (None, 1164)          20115084    flatten_1[0][0]
-____________________________________________________________________________________________________
-dense_2 (Dense)                  (None, 100)           116500      dense_1[0][0]
-____________________________________________________________________________________________________
-dense_3 (Dense)                  (None, 50)            5050        dense_2[0][0]
-____________________________________________________________________________________________________
-dense_4 (Dense)                  (None, 10)            510         dense_3[0][0]
-____________________________________________________________________________________________________
-steering_output (Dense)          (None, 1)             11          dense_4[0][0]
-====================================================================================================
-`
+
+![nvidia model][images/nvidia_model.png]
+
 Totalling 20,375,820 trainable parameters. We use the mean absolute percentage
 error as a cost function and [Adamax](https://arxiv.org/pdf/1412.6980.pdf) for
-stochastic optimization. We use a batch size of 100.
+stochastic optimization. We use a batch size of 100. The model performance in
+terms of mean absolute percentage error is show below.
 
+![nvidia model performance][images/nvidia_model_performance.png]
+
+We see that the validation model performance hovers around 100% and its stopped
+early because the validation performance is not improving.
 
 ### Squeezenet model
 The second model that we built is based on the squeezenet architecture. The
@@ -126,13 +91,25 @@ squeezenet architecture is derived from Alexnet, a neural network that won a
 prize in 2012, but with about 50 times less variables. The architecture of the
 network is as follows,
 
+![squeezenet model][images/squeezenet_model.png]
+
+Totalling 2,178,643 trainable parameters. As for the NVidia architecture we use
+the mean absolute percentage error (MAPE) as a cost function and Adamax for stochastic
+optimization. The model performance in terms of MAPE is,
+
+![squeezenet model performance][images/squeezenet_model_performance.png]
+
+We see that despite the dropout layers in the squeeze net the model is not good
+at generalizing the findings it learns on the training set.
+
+# Running the program
 
 ## Install requirements
 You can install the requirements using `pip3 install -r requirements.txt`.
 
 ## Train the model
 You can download sample data using `./download_sample_data.sh`. Once the data is downloaded the neural net can be trained using
-`python3 model.py --model . --data data/ --epochs 10`.
+`python3 model.py --model . --data data/ --epochs 10 --arch nvidia`.
 
 After completing the epochs you can use the model as follows, `python3 drive.py model.json`. You can run the simulator.
 
