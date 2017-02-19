@@ -205,7 +205,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     images = np.concatenate((left_images, center_images, right_images,
                              ))
 
-    flipped_images = np.fliplr(images.reshape(90, 320, 3, imags.shape[0]))
+    flipped_images = np.fliplr(images.reshape(90, 320, 3, images.shape[0]))
     flipped_images = flipped_images.reshape([images.shape[3], images.shape[2],
                                              images.shape[0], images.shape[1]])
     images = np.concatenate(images, flipped_images)
