@@ -233,7 +233,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
 
     model.fit(x=center_images,
               y=[steering, throttle, speed],
-              nb_epoch=epochs, batch_size=100, validation_split=0.7,
+              nb_epoch=epochs, batch_size=100, validation_split=0.25,
               callbacks=[early_stopping])
 
     model_json_file = "%s/model.json" % (model_path)
