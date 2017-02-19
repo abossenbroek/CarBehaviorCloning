@@ -208,20 +208,11 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         x = squeezenet(center_input)
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
-    throttle_output = Dense(1, activation='linear', name='throttle_output')(x)
-    speed_output = Dense(1, activation='linear', name='speed_output')(x)
 
     model = Model(input=center_img,
-                  output=[steering_output, throttle_output, speed_output])
+                  output=steering_output)
     model.compile(optimizer='adam',
-                  loss={
-                      'steering_output': 'mean_squared_logarithmic_error',
-                      'throttle_output': 'mean_squared_logarithmic_error',
-                      'speed_output': 'mean_squared_error'},
-                  loss_weight={
-                      'steering_output': 10,
-                      'throttle_output': 0.2,
-                      'speed_output': 1})
+                  loss='mean_squared_logarithmic_error')
 
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
