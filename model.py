@@ -47,6 +47,14 @@ def nvidia_model(input):
     return x
 
 def squeezenet(input):
+    """ Specify the squeeze net architecture on an input.
+
+    Code is taken from: https://github.com/DT42/squeezenet_demo
+    The squeeze net network is described in https://arxiv.org/pdf/1602.07360.pdf
+
+    Keyword arguments:
+    input -- the keras input that should be used as input to squeezenet
+    """
     conv1 = Convolution2D(
         96, 7, 7, activation='relu', init='glorot_uniform',
         subsample=(2, 2), border_mode='same', name='conv1')(input)
