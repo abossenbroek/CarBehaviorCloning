@@ -39,11 +39,15 @@ load all the images in a single array with according steering angles.
 ### Cropping
 To reduce the dimensionality of the calibration we decided to crop the image.
 Our initial images looked as follows,
+
 ![full image](images/center_camera.png)
+
 which was 320 by 160 pixels. We decided to crop the bottom and the top since
 this does not hold any valuable information for driving. Our final image looks
 as follows,
+
 ![cropped image](images/center_camera_crop.png)
+
 this image is 320 by 90 pixels.
 
 ### Data augmentation
@@ -54,7 +58,9 @@ steering angle.
 ### Data elimination
 When loading the data we found that many steering angles are around zero. A
 histogram of the steering angles looks as follows,
+
 ![steering hist](images/steering_angle_hist.png)
+
 we added a parameter to the model calibration that allows to remove absolute
 steering angles that are lower than a certain threshold.
 
