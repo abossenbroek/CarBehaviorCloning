@@ -10,7 +10,7 @@ from keras.layers import Dropout, Flatten, Dense, Input, merge
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import PReLU
 from keras.models import model_from_json
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger
 
 MISSING = object()
 
@@ -241,11 +241,16 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model.load_weights(weights_file)
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
+                                  patience=5, min_lr=0.001)
+    csv_logger = CSVLogger('training.log')
 
     model.fit(x=images,
               y=steering,
               nb_epoch=epochs, batch_size=100, validation_split=0.25,
-              callbacks=[early_stopping])
+              callbacks=[reduce_lr,
+                         early_stopping,
+                         csv_logger])
 
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
