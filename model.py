@@ -4,7 +4,7 @@ import pandas as pd
 from skimage import io
 
 from keras.models import Model
-from keras.layers import Convolution2D
+from keras.layers import Convolution2D, Cropping2D
 from keras.layers import Dropout, Flatten, Dense, Input
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import PReLU
@@ -26,20 +26,29 @@ def load_images(files, data_path):
     return images
 
 
-def build_model(model_path, data_path, epochs, load=MISSING):
+def build_model(model_path, data_path, epochs, threshold, load=MISSING):
     # Load the log file.
     drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
-
-    # Load the left, center and right images that come from the simulator,
-    # these are the training features.
-    print("Loading training images:")
-    center_images = load_images(drive_log['center'], data_path)
-    print("center [%s, %s, %s, %s]" % (center_images.shape))
-
     # Load the training labels.
     steering = drive_log['steering']
     throttle = drive_log['throttle']
     speed = drive_log['speed']
+
+    print("min absolute driving angle %s max driving angle %s" % (
+        min(abs(steering)), max(abs(steering))))
+
+    print("original data size %s, with threshold we keep %s" % (
+        len(steering), sum(abs(steering) > threshold)))
+
+    # Load the left, center and right images that come from the simulator,
+    # these are the training features.
+    print("Loading training images:")
+    center_images = load_images(drive_log['center'][abs(steering) > threshold],
+                                data_path)
+    print("center [%s, %s, %s, %s]" % (center_images.shape))
+    throttle = throttle[abs(steering) > threshold]
+    speed = speed[abs(steering) > threshold]
+    steering = steering[abs(steering) > threshold]
 
     center_img = Input(shape=(3, 160, 320), dtype='float32', name="center_img")
     center_input = BatchNormalization()(center_img)
@@ -113,6 +122,9 @@ if __name__ == '__main__':
                         help='Path to data that should be used to train model')
     parser.add_argument('--load', dest='load', type=str,
                         help='Name of the model to load to perform transfer learning.')
+    parser.add_argument('--threshold', dest='threshold', type=float,
+                        help='Driving angle threshold that should be met before using an input for calibration.')
+
 
     args = parser.parse_args()
-    build_model(args.model, args.data, args.epochs)
+    build_model(args.model, args.data, args.epochs, args.threshold)
