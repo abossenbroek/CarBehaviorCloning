@@ -215,12 +215,12 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     else:
         x = squeezenet(input)
 
-    steering_output = Dense(1, activation='linear', name='steering_output')(x)
+    steering_output = Dense(1, activation='ReLU', name='steering_output')(x)
 
     model = Model(input=img_input,
                   output=steering_output)
     model.compile(optimizer='adam',
-                  loss='mean_squared_logarithmic_error')
+                  loss='mean_absolute_percentage_error')
 
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
