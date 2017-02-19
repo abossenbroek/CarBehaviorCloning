@@ -240,7 +240,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
 
     model.fit(x=images,
               y=steering,
