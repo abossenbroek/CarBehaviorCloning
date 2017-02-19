@@ -120,15 +120,9 @@ You can download sample data using `./download_sample_data.sh`. Once the data is
 
 After completing the epochs you can use the model as follows, `python3 drive.py model.json`. You can run the simulator.
 
-## Current issue
-Car keeps crashing in walls.
-
 ### Files
 * `model.py` allows to train the weights of a neural network.
 * `drive.py` allows to use the trained model to drive a car using the UDacity simulator.
 * `model.h5` the weights of a model.
 * `model.json` the json representation of the neural network.
 * `requirements.txt` you can use this file to install all the python3 required files.
-
-### Background literature
-[NVidia's article on a pipeline]()
