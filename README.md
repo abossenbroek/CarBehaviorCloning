@@ -39,11 +39,11 @@ load all the images in a single array with according steering angles.
 ### Cropping
 To reduce the dimensionality of the calibration we decided to crop the image.
 Our initial images looked as follows,
-![full image][images/center_camera.png]
+![full image](images/center_camera.png)
 which was 320 by 160 pixels. We decided to crop the bottom and the top since
 this does not hold any valuable information for driving. Our final image looks
 as follows,
-![cropped image][images/center_camera_cropped.png]
+![cropped image](images/center_camera_cropped.png)
 this image is 320 by 90 pixels.
 
 ### Data augmentation
@@ -54,7 +54,7 @@ steering angle.
 ### Data elimination
 When loading the data we found that many steering angles are around zero. A
 histogram of the steering angles looks as follows,
-![steering hist][images/steering_angle_hist.png]
+![steering hist](images/steering_angle_hist.png)
 we added a parameter to the model calibration that allows to remove absolute
 steering angles that are lower than a certain threshold.
 
@@ -73,14 +73,14 @@ the details of this model next.
 ## NVidia model
 The NVidia model consists of the following architecture,
 
-![nvidia model][images/nvidia_model.png]
+![nvidia model](images/nvidia_model.png)
 
 Totalling 20,375,820 trainable parameters. We use the mean absolute percentage
 error as a cost function and [Adamax](https://arxiv.org/pdf/1412.6980.pdf) for
 stochastic optimization. We use a batch size of 100. The model performance in
 terms of mean absolute percentage error is show below.
 
-![nvidia model performance][images/nvidia_model_performance.png]
+![nvidia model performance](images/nvidia_model_performance.png)
 
 We see that the validation model performance hovers around 100% and its stopped
 early because the validation performance is not improving. The disadvantage of
@@ -96,7 +96,7 @@ squeezenet architecture is derived from Alexnet, a neural network that won a
 prize in 2012, but with about 50 times less variables. The architecture of the
 network is as follows,
 
-![squeezenet model][images/squeezenet_model.png]
+![squeezenet model](images/squeezenet_model.png)
 
 Totalling 2,178,643 trainable parameters, which is a factor 10 times smaller
 than our previous architecture. It achieves this by sampling very often. As for
@@ -104,7 +104,7 @@ the NVidia architecture we use the mean absolute percentage error (MAPE) as a
 cost function and Adamax for stochastic optimization. The model performance in
 terms of MAPE is,
 
-![squeezenet model performance][images/squeezenet_model_performance.png]
+![squeezenet model performance](images/squeezenet_model_performance.png)
 
 We see that despite the dropout layers in the squeeze net the model is not good
 at generalizing the findings it learns on the training set.
