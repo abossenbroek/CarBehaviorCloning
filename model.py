@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from skimage import io
 
-from keras.utils.visualize_util import plot
 from keras.models import Model
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D, AveragePooling2D
@@ -232,7 +231,6 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
                   output=steering_output)
     model.compile(optimizer='adamax',
                   loss='mean_absolute_percentage_error')
-    plot(model, to_file='model.png')
     print(model.summary())
 
     if load is not MISSING:
@@ -242,14 +240,14 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
                                   patience=5, min_lr=0.001)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=images,
               y=steering,
-              nb_epoch=epochs, batch_size=100, validation_split=0.25,
+              nb_epoch=epochs, batch_size=200, validation_split=0.75,
               callbacks=[reduce_lr,
                          early_stopping,
                          csv_logger])
