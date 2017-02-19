@@ -64,13 +64,13 @@ We apply batch normalization on the images using Keras builtin functionalities.
 ### Hold out
 We shuffle the data and hold out 25 percent for validation purposes.
 
-## Model design
+# Model design
 We tried to different models. The first is NVidia's model. The benefit of this
 model is that it is used successfully in behaviour cloning for car steering.
 Moreover, the model is not very deep allow for fast calibration. We will discuss
 the details of this model next.
 
-### NVidia model
+## NVidia model
 The NVidia model consists of the following architecture,
 
 ![nvidia model][images/nvidia_model.png]
@@ -83,9 +83,14 @@ terms of mean absolute percentage error is show below.
 ![nvidia model performance][images/nvidia_model_performance.png]
 
 We see that the validation model performance hovers around 100% and its stopped
-early because the validation performance is not improving.
+early because the validation performance is not improving. The disadvantage of
+the NVidia model is that the weights file are large, around 80 megabytes. This
+can be an issue if we want to deploy the model to an embedded system such as a
+car navigation system. For that reason we research the squeeze net architecture.
+The advantage of the squeeze net model is that it has much less weights than the
+NVidia model.
 
-### Squeezenet model
+## Squeezenet model
 The second model that we built is based on the squeezenet architecture. The
 squeezenet architecture is derived from Alexnet, a neural network that won a
 prize in 2012, but with about 50 times less variables. The architecture of the
@@ -93,9 +98,11 @@ network is as follows,
 
 ![squeezenet model][images/squeezenet_model.png]
 
-Totalling 2,178,643 trainable parameters. As for the NVidia architecture we use
-the mean absolute percentage error (MAPE) as a cost function and Adamax for stochastic
-optimization. The model performance in terms of MAPE is,
+Totalling 2,178,643 trainable parameters, which is a factor 10 times smaller
+than our previous architecture. It achieves this by sampling very often. As for
+the NVidia architecture we use the mean absolute percentage error (MAPE) as a
+cost function and Adamax for stochastic optimization. The model performance in
+terms of MAPE is,
 
 ![squeezenet model performance][images/squeezenet_model_performance.png]
 
