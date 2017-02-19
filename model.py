@@ -28,6 +28,7 @@ def load_images(files, data_path):
     return images
 
 def nvidia_model(input):
+    print("Using nvidia architecture")
     x = Convolution2D(3, 5, 5, border_mode='same')(input)
     x = PReLU()(x)
     x = Convolution2D(24, 5, 5, border_mode='same')(x)
@@ -56,6 +57,7 @@ def squeezenet(input):
     Keyword arguments:
     input -- the keras input that should be used as input to squeezenet
     """
+    print("Using squeezenet architecture")
     conv1 = Convolution2D(
         96, 7, 7, activation='relu', init='glorot_uniform',
         subsample=(2, 2), border_mode='same', name='conv1')(input)
@@ -185,27 +187,37 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     print("original data size %s, with threshold we keep %s" % (
         len(steering), sum(abs(steering) > threshold)))
 
-    print("Will use %s architecture" % (arch))
-
     # Load the left, center and right images that come from the simulator,
     # these are the training features.
     print("Loading training images:")
     center_images = load_images(drive_log['center'][abs(steering) > threshold],
                                 data_path)
     print("center [%s, %s, %s, %s]" % (center_images.shape))
-    steering = steering[abs(steering) > threshold]
+    left_images = load_images(drive_log['left'][abs(steering) > threshold],
+                                data_path)
+    print("left [%s, %s, %s, %s]" % (left_images.shape))
+    right_images = load_images(drive_log['right'][abs(steering) > threshold],
+                                data_path)
+    print("right [%s, %s, %s, %s]" % (right_images.shape))
 
-    center_img = Input(shape=(3, 160, 320), dtype='float32', name="center_img")
-    center_input = BatchNormalization()(center_img)
+    # Copy all the images in one big array.
+    images = np.concatenate((left_images, center_images, right_images))
+    # Keep only steering angles higher than the threshold.
+    steering = steering[abs(steering) > threshold]
+    # Copy the series three times, once for each camera viewpoint.
+    steering = pd.concat((steering, steering, steering))
+
+    img_input = Input(shape=(3, 160, 320), dtype='float32', name="images")
+    input = BatchNormalization()(img_input)
 
     if arch == 'nvidia':
-        x = nvidia_model(center_input)
+        x = nvidia_model(input)
     else:
-        x = squeezenet(center_input)
+        x = squeezenet(input)
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
 
-    model = Model(input=center_img,
+    model = Model(input=img_input,
                   output=steering_output)
     model.compile(optimizer='adam',
                   loss='mean_squared_logarithmic_error')
@@ -213,12 +225,13 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
         weights_file = "%s/model.h5" % (load)
+        print("Loading model from %s" % (load))
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
-    model.fit(x=center_images,
+    model.fit(x=images,
               y=steering,
               nb_epoch=epochs, batch_size=100, validation_split=0.25,
               callbacks=[early_stopping])
