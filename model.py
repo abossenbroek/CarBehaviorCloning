@@ -18,6 +18,7 @@ def load_images(files, data_path):
     def load_func(files):
         for fl in files:
             img = io.imread('%s/%s' % (data_path, fl.strip()))
+            img = img[50:140, 0:320]
             yield img
 
     images = np.stack(load_func(files), axis=-1)
@@ -201,13 +202,21 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     print("right [%s, %s, %s, %s]" % (right_images.shape))
 
     # Copy all the images in one big array.
-    images = np.concatenate((left_images, center_images, right_images))
+    images = np.concatenate((left_images, center_images, right_images,
+                             ))
+
+    flipped_images = np.fliplr(images.reshape(90, 320, 3, imags.shape[0]))
+    flipped_images = flipped_images.reshape([images.shape[3], images.shape[2],
+                                             images.shape[0], images.shape[1]])
+    images = np.concatenate(images, flipped_images)
+
     # Keep only steering angles higher than the threshold.
     steering = steering[abs(steering) > threshold]
     # Copy the series three times, once for each camera viewpoint.
-    steering = pd.concat((steering, steering, steering))
+    steering = pd.concat((steering, steering, steering,
+                          -steering, -steering, -steering))
 
-    img_input = Input(shape=(3, 160, 320), dtype='float32', name="images")
+    img_input = Input(shape=(3, 90, 320), dtype='float32', name="images")
     input = BatchNormalization()(img_input)
 
     if arch == 'nvidia':
@@ -221,6 +230,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
                   output=steering_output)
     model.compile(optimizer='adam',
                   loss='mean_absolute_percentage_error')
+    print(model.summary())
 
     if load is not MISSING:
         model_file = "%s/model.json" % (load)
