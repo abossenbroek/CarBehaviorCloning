@@ -43,7 +43,7 @@ Our initial images looked as follows,
 which was 320 by 160 pixels. We decided to crop the bottom and the top since
 this does not hold any valuable information for driving. Our final image looks
 as follows,
-![cropped image](images/center_camera_cropped.png)
+![cropped image](images/center_camera_crop.png)
 this image is 320 by 90 pixels.
 
 ### Data augmentation
