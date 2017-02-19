@@ -178,8 +178,6 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
     # Load the training labels.
     steering = drive_log['steering']
-    throttle = drive_log['throttle']
-    speed = drive_log['speed']
 
     print("min absolute driving angle %s max driving angle %s" % (
         min(abs(steering)), max(abs(steering))))
@@ -195,8 +193,6 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     center_images = load_images(drive_log['center'][abs(steering) > threshold],
                                 data_path)
     print("center [%s, %s, %s, %s]" % (center_images.shape))
-    throttle = throttle[abs(steering) > threshold]
-    speed = speed[abs(steering) > threshold]
     steering = steering[abs(steering) > threshold]
 
     center_img = Input(shape=(3, 160, 320), dtype='float32', name="center_img")
@@ -223,7 +219,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
     model.fit(x=center_images,
-              y=[steering, throttle, speed],
+              y=steering,
               nb_epoch=epochs, batch_size=100, validation_split=0.25,
               callbacks=[early_stopping])
 
