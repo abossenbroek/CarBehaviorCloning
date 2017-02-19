@@ -215,7 +215,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     else:
         x = squeezenet(input)
 
-    steering_output = Dense(1, activation='ReLU', name='steering_output')(x)
+    steering_output = Dense(1, activation='relu', name='steering_output')(x)
 
     model = Model(input=img_input,
                   output=steering_output)
