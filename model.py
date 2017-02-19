@@ -229,12 +229,12 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
 
     model.fit(x=center_images,
               y=[steering, throttle, speed],
-              nb_epoch=epochs, batch_size=100,
-              validation_split=0.2, callbacks=[early_stopping])
+              nb_epoch=epochs, batch_size=100, validation_split=0.7,
+              callbacks=[early_stopping])
 
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
