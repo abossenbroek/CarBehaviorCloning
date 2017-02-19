@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from skimage import io
 
+from keras.utils.visualize_util import plot
 from keras.models import Model
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D, AveragePooling2D
@@ -231,6 +232,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
                   output=steering_output)
     model.compile(optimizer='adamax',
                   loss='mean_absolute_percentage_error')
+    plot(model, to_file='model.png')
     print(model.summary())
 
     if load is not MISSING:
