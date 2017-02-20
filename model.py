@@ -252,7 +252,7 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
 
     model.fit(x=images,
               y=steering,
-              nb_epoch=epochs, batch_size=200, validation_split=0.75,
+              nb_epoch=epochs, batch_size=200, validation_split=0.25,
               callbacks=[early_stopping,
                          csv_logger])
 
