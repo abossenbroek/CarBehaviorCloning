@@ -36,17 +36,19 @@ def nvidia_model(input):
     x = ELU()(x)
     x = Convolution2D(36, 5, 5, border_mode='same')(x)
     x = ELU()(x)
+    x = Dropout(0.25)(x)
     x = Convolution2D(48, 3, 3, border_mode='same')(x)
     x = ELU()(x)
+    x = Dropout(0.25)(x)
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
     x = ELU()(x)
     x = Dropout(0.25)(x)
 
     x = Flatten()(x)
-    x = Dense(1164)(x)
+    x = Dense(512)(x)
     x = Dense(100)(x)
     x = Dense(50)(x)
-    x = Dense(10)(x)
+    x = Dense(1)(x)
     return x
 
 def squeezenet(input):
