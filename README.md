@@ -53,7 +53,8 @@ this image is 320 by 90 pixels.
 ### Data augmentation
 To augment the dataset we mirror all the images from the left, center and right
 camera and flip them. As training labels for these images we use the negative
-steering angle.
+steering angle. For the left and right images we add respectively plus and minus
+a random number between 0 and 0.15 to count as a corrective driving action.
 
 ### Data elimination
 When loading the data we found that many steering angles are around zero. A
@@ -68,7 +69,8 @@ steering angles that are lower than a certain threshold.
 We apply batch normalization on the images using Keras builtin functionalities.
 
 ### Hold out
-We shuffle the data and hold out 25 percent for validation purposes.
+We shuffle the data and hold out 25 percent for validation purposes. This leaves
+us with 39,168 images for training and 13,056 for validation.
 
 # Model design
 We tried to different models. The first is NVidia's model. The benefit of this
