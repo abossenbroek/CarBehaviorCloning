@@ -8,7 +8,7 @@ from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D, AveragePooling2D
 from keras.layers import Dropout, Flatten, Dense, Input, merge
 from keras.layers.normalization import BatchNormalization
-from keras.layers.advanced_activations import PReLU
+from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger
 
@@ -31,15 +31,15 @@ def load_images(files, data_path):
 def nvidia_model(input):
     print("Using nvidia architecture")
     x = Convolution2D(3, 5, 5, border_mode='same')(input)
-    x = PReLU()(x)
+    x = ELU()(x)
     x = Convolution2D(24, 5, 5, border_mode='same')(x)
-    x = PReLU()(x)
+    x = ELU()(x)
     x = Convolution2D(36, 5, 5, border_mode='same')(x)
-    x = PReLU()(x)
+    x = ELU()(x)
     x = Convolution2D(48, 3, 3, border_mode='same')(x)
-    x = PReLU()(x)
+    x = ELU()(x)
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
-    x = PReLU()(x)
+    x = ELU()(x)
     x = Dropout(0.25)(x)
 
     x = Flatten()(x)
@@ -245,16 +245,13 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                  patience=5, min_lr=0.001)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=images,
               y=steering,
               nb_epoch=epochs, batch_size=200, validation_split=0.75,
-              callbacks=[reduce_lr,
-                         early_stopping,
+              callbacks=[early_stopping,
                          csv_logger])
 
     model_json_file = "%s/model.json" % (model_path)
