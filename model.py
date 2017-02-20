@@ -214,8 +214,13 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     # Keep only steering angles higher than the threshold.
     steering = steering[abs(steering) > threshold]
     # Copy the series three times, once for each camera viewpoint.
-    steering = pd.concat((steering, steering, steering,
-                          -steering, -steering, -steering))
+    steering = pd.concat(
+        (steering + np.random.uniform(low=0, high=0.15, size = len(steering)),
+         steering,
+         steering - np.random.uniform(low=0, high=0.15, size = len(steering)),
+         -(steering + np.random.uniform(low=0, high=0.15, size = len(steering))),
+         -steering,
+         -(steering - np.random.uniform(low=0, high=0.15, size = len(steering)))))
 
     img_input = Input(shape=(3, 90, 320), dtype='float32', name="images")
     input = BatchNormalization()(img_input)
