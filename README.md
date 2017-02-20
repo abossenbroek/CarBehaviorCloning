@@ -81,10 +81,13 @@ The NVidia model consists of the following architecture,
 
 ![nvidia model](images/nvidia_model.png)
 
-Totalling 20,375,820 trainable parameters. We use the mean absolute percentage
+Totalling 8,995,690 trainable parameters. We use the mean absolute percentage
 error as a cost function and [Adamax](https://arxiv.org/pdf/1412.6980.pdf) for
-stochastic optimization. We use a batch size of 100. The model performance in
-terms of mean absolute percentage error is show below.
+stochastic optimization. We use a batch size of 100. We used [Exponentential
+Linear Units](https://arxiv.org/abs/1511.07289) as activation functions and two
+drop out layers to make the model more robust.
+
+The model performance in terms of mean absolute percentage error is show below.
 
 ![nvidia model performance](images/nvidia_model_performance.png)
 

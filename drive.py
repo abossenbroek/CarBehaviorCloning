@@ -47,7 +47,7 @@ def telemetry(sid, data):
 
     prediction = model.predict(image_array, batch_size=1, verbose=1)
     steering_angle = prediction[0][0]#[0][0]
-    throttle = 0.2 #prediction[1][0][0]
+    throttle = max(0.1, -0.15/0.05 * abs(steering_angle) + 0.35)
     speed = 0.2 #prediction[2][0][0]
 
     # The driving model currently just outputs a constant throttle. Feel free to edit this.

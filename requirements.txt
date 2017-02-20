@@ -6,3 +6,4 @@ scikit-image
 python-socketio
 eventlet
 flask
+pydot
