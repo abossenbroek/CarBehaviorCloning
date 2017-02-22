@@ -36,18 +36,19 @@ def nvidia_model(input):
     x = ELU()(x)
     x = Convolution2D(36, 5, 5, border_mode='same')(x)
     x = ELU()(x)
-    x = Dropout(0.25)(x)
     x = Convolution2D(48, 3, 3, border_mode='same')(x)
     x = ELU()(x)
-    x = Dropout(0.25)(x)
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
     x = ELU()(x)
     x = Dropout(0.25)(x)
 
     x = Flatten()(x)
     x = Dense(512)(x)
+    x = Dropout(0.25)(x)
     x = Dense(100)(x)
+    x = Dropout(0.25)(x)
     x = Dense(50)(x)
+    x = Dropout(0.25)(x)
     x = Dense(1)(x)
     return x
 
@@ -247,12 +248,13 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
         model = model_from_json(model_file)
         model.load_weights(weights_file)
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=20)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=images,
               y=steering,
-              nb_epoch=epochs, batch_size=200, validation_split=0.75,
+              nb_epoch=epochs, batch_size=200, validation_split=0.25,
+              shuffle=True,
               callbacks=[early_stopping,
                          csv_logger])
 
