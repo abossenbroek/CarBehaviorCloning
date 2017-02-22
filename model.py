@@ -238,7 +238,8 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     model = Model(input=img_input,
                   output=steering_output)
     model.compile(optimizer='adamax',
-                  loss='mean_absolute_percentage_error')
+                  loss='rmse')
+                  #loss='mean_absolute_percentage_error')
     print(model.summary())
 
     if load is not MISSING:
