@@ -38,6 +38,7 @@ def nvidia_model(input):
     x = ELU()(x)
     x = Convolution2D(48, 3, 3, border_mode='same')(x)
     x = ELU()(x)
+    x = Dropout(0.5)(x)
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
