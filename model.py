@@ -40,7 +40,7 @@ def nvidia_model(input):
     x = ELU()(x)
     x = Convolution2D(64, 3, 3, border_mode='same')(x)
     x = ELU()(x)
-    x = Dropout(0.25)(x)
+    x = Dropout(0.5)(x)
 
     x = Flatten()(x)
     x = Dense(512)(x)
@@ -48,6 +48,7 @@ def nvidia_model(input):
     x = Dense(100)(x)
     x = Dropout(0.5)(x)
     x = Dense(50)(x)
+    x = Dropout(0.5)(x)
     x = Dense(1)(x)
     return x
 
