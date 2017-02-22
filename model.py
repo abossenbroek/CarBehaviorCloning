@@ -44,11 +44,10 @@ def nvidia_model(input):
 
     x = Flatten()(x)
     x = Dense(512)(x)
-    x = Dropout(0.25)(x)
+    x = Dropout(0.5)(x)
     x = Dense(100)(x)
-    x = Dropout(0.25)(x)
+    x = Dropout(0.5)(x)
     x = Dense(50)(x)
-    x = Dropout(0.25)(x)
     x = Dense(1)(x)
     return x
 
