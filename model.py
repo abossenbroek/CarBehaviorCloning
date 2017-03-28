@@ -2,11 +2,13 @@ import argparse
 import numpy as np
 import pandas as pd
 from skimage import io
+import cv2
 
 from keras.models import Model
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D, AveragePooling2D
-from keras.layers import Dropout, Flatten, Dense, Input, merge
+from keras import regularizers
+from keras.layers import Dropout, Flatten, Dense, Input, Lambda
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
@@ -29,168 +31,76 @@ def load_images(files, data_path):
     return images
 
 def nvidia_model(input):
-    print("Using nvidia architecture")
-    x = Convolution2D(3, 5, 5, border_mode='same')(input)
+    x = Convolution2D(3, 5, 5, border_mode='valid', subsample=(2, 2),
+                      W_regularizer=regularizers.l2(0.01))(input)
     x = ELU()(x)
-    x = Convolution2D(24, 5, 5, border_mode='same')(x)
+    x = Convolution2D(24, 5, 5, border_mode='valid',subsample=(2, 2),
+                      W_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Convolution2D(36, 5, 5, border_mode='same')(x)
+    x = Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2),
+                      W_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Convolution2D(48, 3, 3, border_mode='same')(x)
+    x = Convolution2D(48, 3, 3, border_mode='valid', subsample=(2, 2),
+                      W_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Dropout(0.5)(x)
-    x = Convolution2D(64, 3, 3, border_mode='same')(x)
+    x = Convolution2D(64, 3, 3, border_mode='valid', subsample=(2, 2),
+                      W_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Dropout(0.5)(x)
 
     x = Flatten()(x)
-    x = Dense(512)(x)
-    x = Dropout(0.5)(x)
-    x = Dense(100)(x)
-    x = Dropout(0.5)(x)
-    x = Dense(50)(x)
-    x = Dropout(0.5)(x)
+    x = Dense(1164, activation="elu", W_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(512, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dropout(0.2)(x)
+    x = Dense(100, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dropout(0.2)(x)
+    x = Dense(50, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dropout(0.2)(x)
     x = Dense(1)(x)
     return x
 
-def squeezenet(input):
-    """ Specify the squeeze net architecture on an input.
 
-    Code is taken from: https://github.com/DT42/squeezenet_demo
-    The squeeze net network is described in https://arxiv.org/pdf/1602.07360.pdf
+def preprocess_img(file, fromColorSpace="BGR"):
+    img = cv2.imread(file)
+    if fromColorSpace == "BGR":
+       convert = cv2.COLOR_BGR2YUV
+    else:
+        convert = cv2.COLOR_RGB2YUV
+    img = cv2.cvtColor(img, convert)
+    img = img[50:140,:,:]
+    img = cv2.resize(img, (200,66), interpolation=cv2.INTER_AREA)
+    img = np.asfarray(img)
+    return img
 
-    Keyword arguments:
-    input -- the keras input that should be used as input to squeezenet
-    """
-    print("Using squeezenet architecture")
-    conv1 = Convolution2D(
-        96, 7, 7, activation='relu', init='glorot_uniform',
-        subsample=(2, 2), border_mode='same', name='conv1')(input)
-    maxpool1 = MaxPooling2D(
-        pool_size=(3, 3), strides=(2, 2), border_mode='same', name='maxpool1')(conv1)
+def process_line(line):
+    center_image_nm, left_image_nm, right_image_nm, angle, steering, throttle, brake, speed = line.split(",")
+    # Load the images
+    center_img = preprocess_img(center_image_nm)
+    left_img = preprocess_img(left_image_nm)
+    right_img = preprocess_img(right_image_nm)
 
-    fire2_squeeze = Convolution2D(
-        16, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire2_squeeze')(maxpool1)
-    fire2_expand1 = Convolution2D(
-        64, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire2_expand1')(fire2_squeeze)
-    fire2_expand2 = Convolution2D(
-        64, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire2_expand2')(fire2_squeeze)
-    merge2 = merge(
-        [fire2_expand1, fire2_expand2], mode='concat', concat_axis=1)
+    # Generate the angles
+    center_angle = float(angle)
+    left_angle = center_angle + np.random.uniform(low=0, high=0.15)
+    right_angle = center_angle - np.random.uniform(low=0, high=0.15)
 
-    fire3_squeeze = Convolution2D(
-        16, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire3_squeeze')(merge2)
-    fire3_expand1 = Convolution2D(
-        64, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire3_expand1')(fire3_squeeze)
-    fire3_expand2 = Convolution2D(
-        64, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire3_expand2')(fire3_squeeze)
-    merge3 = merge(
-        [fire3_expand1, fire3_expand2], mode='concat', concat_axis=1)
+    x = np.vstack((center_img, right_img, left_img))
+    y = np.vstack((center_angle, right_angle, left_angle))
 
-    fire4_squeeze = Convolution2D(
-        32, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire4_squeeze')(merge3)
-    fire4_expand1 = Convolution2D(
-        128, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire4_expand1')(fire4_squeeze)
-    fire4_expand2 = Convolution2D(
-        128, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire4_expand2')(fire4_squeeze)
-    merge4 = merge(
-        [fire4_expand1, fire4_expand2], mode='concat', concat_axis=1)
-    maxpool4 = MaxPooling2D(
-        pool_size=(3, 3), strides=(2, 2), name='maxpool4')(merge4)
+    return [x, y]
 
-    fire5_squeeze = Convolution2D(
-        32, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire5_squeeze')(maxpool4)
-    fire5_expand1 = Convolution2D(
-        128, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire5_expand1')(fire5_squeeze)
-    fire5_expand2 = Convolution2D(
-        128, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire5_expand2')(fire5_squeeze)
-    merge5 = merge(
-        [fire5_expand1, fire5_expand2], mode='concat', concat_axis=1)
 
-    fire6_squeeze = Convolution2D(
-        48, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire6_squeeze')(merge5)
-    fire6_expand1 = Convolution2D(
-        192, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire6_expand1')(fire6_squeeze)
-    fire6_expand2 = Convolution2D(
-        192, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire6_expand2')(fire6_squeeze)
-    merge6 = merge(
-        [fire6_expand1, fire6_expand2], mode='concat', concat_axis=1)
+def generate_input_from_file(path):
+    while 1:
+        f = open(path)
+        for line in f:
+            x, y = process_line(line)
+            yield (x, y)
+        f.close()
 
-    fire7_squeeze = Convolution2D(
-        48, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire7_squeeze')(merge6)
-    fire7_expand1 = Convolution2D(
-        192, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire7_expand1')(fire7_squeeze)
-    fire7_expand2 = Convolution2D(
-        192, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire7_expand2')(fire7_squeeze)
-    merge7 = merge(
-        [fire7_expand1, fire7_expand2], mode='concat', concat_axis=1)
 
-    fire8_squeeze = Convolution2D(
-        64, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire8_squeeze')(merge7)
-    fire8_expand1 = Convolution2D(
-        256, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire8_expand1')(fire8_squeeze)
-    fire8_expand2 = Convolution2D(
-        256, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire8_expand2')(fire8_squeeze)
-    merge8 = merge(
-        [fire8_expand1, fire8_expand2], mode='concat', concat_axis=1)
-
-    maxpool8 = MaxPooling2D(
-        pool_size=(3, 3), strides=(2, 2), name='maxpool8')(merge8)
-
-    fire9_squeeze = Convolution2D(
-        64, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire9_squeeze')(maxpool8)
-    fire9_expand1 = Convolution2D(
-        256, 1, 1, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire9_expand1')(fire9_squeeze)
-    fire9_expand2 = Convolution2D(
-        256, 3, 3, activation='relu', init='glorot_uniform',
-        border_mode='same', name='fire9_expand2')(fire9_squeeze)
-    merge9 = merge(
-        [fire9_expand1, fire9_expand2], mode='concat', concat_axis=1)
-
-    fire9_dropout = Dropout(0.5, name='fire9_dropout')(merge9)
-    conv10 = Convolution2D(
-        10, 1, 1, init='glorot_uniform',
-        border_mode='valid', name='conv10')(fire9_dropout)
-    # The size should match the output of conv10
-    avgpool10 = AveragePooling2D((13, 13), border_mode='same', name='avgpool10')(conv10)
-
-    flatten = Flatten(name='flatten')(avgpool10)
-    return flatten
-
-def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
+def build_model(model_path, data_path, epochs, threshold, load=MISSING):
     # Load the log file.
     drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
-    # Load the training labels.
-    steering = drive_log['steering']
-
-    print("min absolute driving angle %s max driving angle %s" % (
-        min(abs(steering)), max(abs(steering))))
-
-    print("original data size %s, with threshold we keep %s" % (
-        len(steering), sum(abs(steering) > threshold)))
 
     # Load the left, center and right images that come from the simulator,
     # these are the training features.
@@ -219,20 +129,18 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     steering = steering[abs(steering) > threshold]
     # Copy the series three times, once for each camera viewpoint.
     steering = pd.concat(
-        (steering + np.random.uniform(low=0, high=0.15, size = len(steering)),
+        (steering + ),
          steering,
          steering - np.random.uniform(low=0, high=0.15, size = len(steering)),
          -(steering + np.random.uniform(low=0, high=0.15, size = len(steering))),
          -steering,
          -(steering - np.random.uniform(low=0, high=0.15, size = len(steering)))))
 
-    img_input = Input(shape=(3, 90, 320), dtype='float32', name="images")
-    input = BatchNormalization()(img_input)
+    img_input = Input(shape=(66, 200, 3), dtype='float32', name="images")
 
-    if arch == 'nvidia':
-        x = nvidia_model(input)
-    else:
-        x = squeezenet(input)
+    input = Lambda(lambda x: x/127.5 - 1.0)(img_input)
+
+    x = nvidia_model(input)
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
 
@@ -273,11 +181,6 @@ def build_model(model_path, data_path, epochs, threshold, arch, load=MISSING):
     model.save_weights(model_weights_file)
     print("Succesfully saved weights")
 
-def archSpecification(string):
-    if not(string == "nvidia" or string == "squeeze"):
-        raise argparse.ArgumentError('Value should be either nvidia or squeeze')
-    return string
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Behavior cloning training')
     parser.add_argument('--model', dest='model', type=str,
@@ -290,8 +193,6 @@ if __name__ == '__main__':
                         help='Name of the model to load to perform transfer learning.')
     parser.add_argument('--threshold', dest='threshold', type=float,
                         help='Driving angle threshold that should be met before using an input for calibration.')
-    parser.add_argument('--arch', dest='arch', type=archSpecification,
-                        help='The model architecture that should be used (nvidia or squeeze).')
 
     args = parser.parse_args()
-    build_model(args.model, args.data, args.epochs, args.threshold, args.arch)
+    build_model(args.model, args.data, args.epochs, args.threshold)
