@@ -4,15 +4,14 @@ import pandas as pd
 from skimage import io
 import cv2
 
+
 from keras.models import Model
 from keras.layers import Convolution2D
-from keras.layers import MaxPooling2D, AveragePooling2D
 from keras import regularizers
 from keras.layers import Dropout, Flatten, Dense, Input, Lambda
-from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger
+from keras.callbacks import EarlyStopping, CSVLogger
 
 MISSING = object()
 
@@ -73,15 +72,35 @@ def preprocess_img(file, fromColorSpace="BGR"):
 
 def process_line(line):
     center_image_nm, left_image_nm, right_image_nm, angle, steering, throttle, brake, speed = line.split(",")
+    # Generate the angles
+    center_angle = float(angle)
+    # Add random angle adjustment.
+    left_angle = center_angle + np.random.uniform(low=0.05, high=0.8)
+    right_angle = center_angle - np.random.uniform(low=0.05, high=0.8)
     # Load the images
     center_img = preprocess_img(center_image_nm)
     left_img = preprocess_img(left_image_nm)
     right_img = preprocess_img(right_image_nm)
 
-    # Generate the angles
-    center_angle = float(angle)
-    left_angle = center_angle + np.random.uniform(low=0, high=0.15)
-    right_angle = center_angle - np.random.uniform(low=0, high=0.15)
+    rv = np.random.uniform(0,1)
+    # In half of the cased do a random rotation of -15 to 15 degrees.
+    if rv < 0.5
+        rows, cols = center_img.shape
+
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        center_img = cv2.warpAffine(center_img, rot_mat, (cols, rows))
+
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        left_img = cv2.warpAffine(left_img, rot_mat, (cols, rows))
+
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        right_img = cv2.warpAffine(right_img, rot_mat, (cols, rows))
+
+    rv = np.random.uniform(0,1)
+    # Flip one on two center pictures.
+    if rv < 0.5:
+        center_angle = -center_angle
+        center_img = np.fliplr(center_img)
 
     x = np.vstack((center_img, right_img, left_img))
     y = np.vstack((center_angle, right_angle, left_angle))
@@ -98,43 +117,29 @@ def generate_input_from_file(path):
         f.close()
 
 
-def build_model(model_path, data_path, epochs, threshold, load=MISSING):
+def load_original_file(path):
+    X = []
+    Y = []
+
+    f = open(path)
+    for i, line in enumerate(f):
+        if i < 1:
+            continue
+        else:
+            x, y = process_line(line)
+            X = np.vstack((X, x))
+            Y = np.vstack((Y, y))
+    f.close()
+
+    return [X, Y]
+
+
+def build_model(model_path, data_path, learning_file, epochs, threshold, load=MISSING):
     # Load the log file.
     drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
 
-    # Load the left, center and right images that come from the simulator,
-    # these are the training features.
-    print("Loading training images:")
-    center_images = load_images(drive_log['center'][abs(steering) > threshold],
-                                data_path)
-    print("center [%s, %s, %s, %s]" % (center_images.shape))
-    left_images = load_images(drive_log['left'][abs(steering) > threshold],
-                                data_path)
-    print("left [%s, %s, %s, %s]" % (left_images.shape))
-    right_images = load_images(drive_log['right'][abs(steering) > threshold],
-                                data_path)
-    print("right [%s, %s, %s, %s]" % (right_images.shape))
+    X, y = load_original_file(drive_log)
 
-    # Copy all the images in one big array.
-    images = np.concatenate((left_images, center_images, right_images))
-
-    flipped_images = np.fliplr(images.reshape(90, 320, 3, images.shape[0]))
-    flipped_images = flipped_images.reshape(images.shape)
-
-    images = np.concatenate((images, flipped_images))
-
-    print("training on total of [%s, %s, %s, %s]" % (images.shape))
-
-    # Keep only steering angles higher than the threshold.
-    steering = steering[abs(steering) > threshold]
-    # Copy the series three times, once for each camera viewpoint.
-    steering = pd.concat(
-        (steering + ),
-         steering,
-         steering - np.random.uniform(low=0, high=0.15, size = len(steering)),
-         -(steering + np.random.uniform(low=0, high=0.15, size = len(steering))),
-         -steering,
-         -(steering - np.random.uniform(low=0, high=0.15, size = len(steering)))))
 
     img_input = Input(shape=(66, 200, 3), dtype='float32', name="images")
 
@@ -161,12 +166,16 @@ def build_model(model_path, data_path, epochs, threshold, load=MISSING):
     early_stopping = EarlyStopping(monitor='val_loss', patience=20)
     csv_logger = CSVLogger('training.log')
 
-    model.fit(x=images,
-              y=steering,
+    model.fit(x=X,
+              y=y,
               nb_epoch=epochs, batch_size=200, validation_split=0.25,
               shuffle=True,
               callbacks=[early_stopping,
                          csv_logger])
+
+    model.fit_generator(generate_input_from_file(learning_file),
+                        samples_per_epoch=200,
+                        epochs=10)
 
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
@@ -194,5 +203,6 @@ if __name__ == '__main__':
     parser.add_argument('--threshold', dest='threshold', type=float,
                         help='Driving angle threshold that should be met before using an input for calibration.')
 
+    #TODO: adjust to new paramaters in the function call.
     args = parser.parse_args()
     build_model(args.model, args.data, args.epochs, args.threshold)
