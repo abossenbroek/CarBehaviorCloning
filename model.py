@@ -115,7 +115,7 @@ def load_original_file(log_file, log_path):
             Y.append(y)
     f.close()
 
-    return [np.stack(X), np.stack(Y)]
+    return [np.concatenate(X, axis=0), np.concatenate(Y, axis=1)]
 
 
 def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
