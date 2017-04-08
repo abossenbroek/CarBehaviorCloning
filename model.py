@@ -6,7 +6,7 @@ import cv2
 
 
 from keras.models import Model
-from keras.layers import Convolution2D
+from keras.layers import Conv2D
 from keras import regularizers
 from keras.layers import Dropout, Flatten, Dense, Input, Lambda
 from keras.layers.advanced_activations import ELU
@@ -15,44 +15,25 @@ from keras.callbacks import EarlyStopping, CSVLogger
 
 MISSING = object()
 
-def load_images(files, data_path):
-    def load_func(files):
-        for fl in files:
-            img = io.imread('%s/%s' % (data_path, fl.strip()))
-            img = img[50:140, 0:320]
-            yield img
-
-    images = np.stack(load_func(files), axis=-1)
-    images = images.reshape([images.shape[3], images.shape[2],
-                             images.shape[0], images.shape[1]])
-    images = images.astype('float32')
-    images = images/256.0
-    return images
-
 def nvidia_model(input):
-    x = Convolution2D(3, 5, 5, border_mode='valid', subsample=(2, 2),
-                      W_regularizer=regularizers.l2(0.01))(input)
+    x = Conv2D(3, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(input)
     x = ELU()(x)
-    x = Convolution2D(24, 5, 5, border_mode='valid',subsample=(2, 2),
-                      W_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(24, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Convolution2D(36, 5, 5, border_mode='valid', subsample=(2, 2),
-                      W_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(36, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Convolution2D(48, 3, 3, border_mode='valid', subsample=(2, 2),
-                      W_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(48, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
-    x = Convolution2D(64, 3, 3, border_mode='valid', subsample=(2, 2),
-                      W_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(64, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
     x = ELU()(x)
 
     x = Flatten()(x)
-    x = Dense(1164, activation="elu", W_regularizer=regularizers.l2(0.01))(x)
-    x = Dense(512, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(512, kernel_regularizer=regularizers.l2(0.01))(x)
     x = Dropout(0.2)(x)
-    x = Dense(100, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(100, kernel_regularizer=regularizers.l2(0.01))(x)
     x = Dropout(0.2)(x)
-    x = Dense(50, W_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(50, kernel_regularizer=regularizers.l2(0.01))(x)
     x = Dropout(0.2)(x)
     x = Dense(1)(x)
     return x
@@ -70,33 +51,34 @@ def preprocess_img(file, fromColorSpace="BGR"):
     img = np.asfarray(img)
     return img
 
-def process_line(line):
-    center_image_nm, left_image_nm, right_image_nm, angle, steering, throttle, brake, speed = line.split(",")
+
+def process_line(line, log_path):
+    center_image_nm, left_image_nm, right_image_nm, angle, throttle, brake, speed = line.split(",")
     # Generate the angles
     center_angle = float(angle)
     # Add random angle adjustment.
     left_angle = center_angle + np.random.uniform(low=0.05, high=0.8)
     right_angle = center_angle - np.random.uniform(low=0.05, high=0.8)
     # Load the images
-    center_img = preprocess_img(center_image_nm)
-    left_img = preprocess_img(left_image_nm)
-    right_img = preprocess_img(right_image_nm)
+    center_img = preprocess_img(log_path + center_image_nm.strip())
+    left_img = preprocess_img(log_path + left_image_nm.strip())
+    right_img = preprocess_img(log_path + right_image_nm.strip())
 
     rv = np.random.uniform(0,1)
     # In half of the cased do a random rotation of -15 to 15 degrees.
-    if rv < 0.5
-        rows, cols = center_img.shape
+    if rv < 0.5:
+        rows, cols, colors = center_img.shape
 
-        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-15,15), 1)
         center_img = cv2.warpAffine(center_img, rot_mat, (cols, rows))
 
-        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-15,15), 1)
         left_img = cv2.warpAffine(left_img, rot_mat, (cols, rows))
 
-        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rv.uniform(-15,15), 1)
+        rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-15,15), 1)
         right_img = cv2.warpAffine(right_img, rot_mat, (cols, rows))
 
-    rv = np.random.uniform(0,1)
+    rv = np.random.uniform(0, 1)
     # Flip one on two center pictures.
     if rv < 0.5:
         center_angle = -center_angle
@@ -108,37 +90,37 @@ def process_line(line):
     return [x, y]
 
 
-def generate_input_from_file(path):
+def generate_input_from_file(log_file, log_path):
     while 1:
-        f = open(path)
+        f = open(log_file)
         for line in f:
-            x, y = process_line(line)
+            x, y = process_line(line, log_path)
             yield (x, y)
         f.close()
 
 
-def load_original_file(path):
+def load_original_file(log_file, log_path):
     X = []
     Y = []
 
-    f = open(path)
+    f = open(log_file)
     for i, line in enumerate(f):
         if i < 1:
             continue
         else:
-            x, y = process_line(line)
-            X = np.vstack((X, x))
-            Y = np.vstack((Y, y))
+            x, y = process_line(line, log_path)
+            X.append(x)
+            Y.append(y)
     f.close()
 
-    return [X, Y]
+    return [np.stack(X), np.stack(Y)]
 
 
-def build_model(model_path, data_path, learning_file, epochs, threshold, load=MISSING):
+def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
     # Load the log file.
-    drive_log = pd.read_csv("%s/driving_log.csv" % (data_path))
+    drive_log = "%s/driving_log.csv" % data_path
 
-    X, y = load_original_file(drive_log)
+    X, y = load_original_file(drive_log, data_path)
 
 
     img_input = Input(shape=(66, 200, 3), dtype='float32', name="images")
@@ -168,14 +150,15 @@ def build_model(model_path, data_path, learning_file, epochs, threshold, load=MI
 
     model.fit(x=X,
               y=y,
-              nb_epoch=epochs, batch_size=200, validation_split=0.25,
+              epochs=epochs, batch_size=200, validation_split=0.25,
               shuffle=True,
               callbacks=[early_stopping,
                          csv_logger])
 
-    model.fit_generator(generate_input_from_file(learning_file),
-                        samples_per_epoch=200,
-                        epochs=10)
+    if learning_file is not MISSING:
+        model.fit_generator(generate_input_from_file(learning_file, data_path),
+                            samples_per_epoch=200,
+                            epochs=10)
 
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
@@ -200,9 +183,7 @@ if __name__ == '__main__':
                         help='Path to data that should be used to train model')
     parser.add_argument('--load', dest='load', type=str,
                         help='Name of the model to load to perform transfer learning.')
-    parser.add_argument('--threshold', dest='threshold', type=float,
-                        help='Driving angle threshold that should be met before using an input for calibration.')
 
     #TODO: adjust to new paramaters in the function call.
     args = parser.parse_args()
-    build_model(args.model, args.data, args.epochs, args.threshold)
+    build_model(args.model, args.data, MISSING, args.epochs)
