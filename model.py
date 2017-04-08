@@ -84,7 +84,9 @@ def process_line(line, log_path):
         center_angle = -center_angle
         center_img = np.fliplr(center_img)
 
-    x = np.vstack((center_img, right_img, left_img))
+    x = np.concatenate((center_img[np.newaxis, ...],
+                        right_img[np.newaxis, ...],
+                        left_img[np.newaxis, ...]), axis=0)
     y = np.vstack((center_angle, right_angle, left_angle))
 
     return [x, y]
