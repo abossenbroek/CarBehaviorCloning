@@ -115,7 +115,7 @@ def load_original_file(log_file, log_path):
             Y.append(y)
     f.close()
 
-    return [np.concatenate(X, axis=0), np.concatenate(Y, axis=1)]
+    return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
 def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
@@ -171,9 +171,9 @@ def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
     with open(model_json_file, "w") as json_file:
         json_file.write(model_json)
 
-    print("Succesfully saved JSON file")
+    print("Successfully saved JSON file")
     model.save_weights(model_weights_file)
-    print("Succesfully saved weights")
+    print("Successfully saved weights")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Behavior cloning training')
