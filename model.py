@@ -11,29 +11,30 @@ from keras import regularizers
 from keras.layers import Dropout, Flatten, Dense, Input, Lambda
 from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
-from keras.callbacks import EarlyStopping, CSVLogger
+from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 
 MISSING = object()
 
 def nvidia_model(input):
-    x = Conv2D(3, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(input)
+    x = Conv2D(3, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(input)
     x = ELU()(x)
-    x = Conv2D(24, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(24, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
     x = ELU()(x)
-    x = Conv2D(36, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(36, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
     x = ELU()(x)
-    x = Conv2D(48, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(48, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
     x = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Conv2D(64, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
     x = ELU()(x)
 
     x = Flatten()(x)
-    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.01))(x)
-    x = Dense(512, kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001))(x)
     x = Dropout(0.2)(x)
-    x = Dense(100, kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(512, kernel_regularizer=regularizers.l2(0.001))(x)
     x = Dropout(0.2)(x)
-    x = Dense(50, kernel_regularizer=regularizers.l2(0.01))(x)
+    x = Dense(100, kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Dropout(0.2)(x)
+    x = Dense(50, kernel_regularizer=regularizers.l2(0.001))(x)
     x = Dropout(0.2)(x)
     x = Dense(1)(x)
     return x
@@ -124,8 +125,10 @@ def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
 
     X, y = load_original_file(drive_log, data_path)
 
+    X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
-    img_input = Input(shape=(66, 200, 3), dtype='float32', name="images")
+
+    img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
     input = Lambda(lambda x: x/127.5 - 1.0)(img_input)
 
@@ -148,6 +151,8 @@ def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
         model.load_weights(weights_file)
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=20)
+    checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
+            save_best_only=True)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=X,
@@ -155,7 +160,8 @@ def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
               epochs=epochs, batch_size=200, validation_split=0.25,
               shuffle=True,
               callbacks=[early_stopping,
-                         csv_logger])
+                  checkpointer,
+                  csv_logger])
 
     if learning_file is not MISSING:
         model.fit_generator(generate_input_from_file(learning_file, data_path),
