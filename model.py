@@ -16,25 +16,35 @@ from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 MISSING = object()
 
 def nvidia_model(input):
-    x = Conv2D(3, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(input)
+    x = Conv2D(3, (5, 5), strides=(2, 2), padding='valid',
+            kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(input)
     x = ELU()(x)
-    x = Conv2D(24, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Conv2D(24, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = ELU()(x)
-    x = Conv2D(36, (5, 5), strides=(2, 2), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Conv2D(36, (5, 5), padding='valid', kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = ELU()(x)
-    x = Conv2D(48, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Conv2D(48, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Conv2D(64, (3, 3), padding='valid', kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = ELU()(x)
 
     x = Flatten()(x)
-    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = Dropout(0.2)(x)
-    x = Dense(512, kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = Dropout(0.2)(x)
-    x = Dense(100, kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = Dropout(0.2)(x)
-    x = Dense(50, kernel_regularizer=regularizers.l2(0.001))(x)
+    x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
+            kernel_initializer='he_normal')(x)
     x = Dropout(0.2)(x)
     x = Dense(1)(x)
     return x
@@ -119,7 +129,7 @@ def load_original_file(log_file, log_path):
     return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
-def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
+def build_model(model_path, data_path, epochs, learning_file=MISSING, model_file=MISSING):
     # Load the log file.
     drive_log = "%s/driving_log.csv" % data_path
 
@@ -143,11 +153,12 @@ def build_model(model_path, data_path, learning_file, epochs, load=MISSING):
                   #loss='mean_absolute_percentage_error')
     print(model.summary())
 
-    if load is not MISSING:
-        model_file = "%s/model.json" % (load)
-        weights_file = "%s/model.h5" % (load)
-        print("Loading model from %s" % (load))
-        model = model_from_json(model_file)
+    if model_file is not MISSING:
+        print("Loading model from %s" % model_file)
+        with open(model_file, 'r') as jfile:
+            model = model_from_json(jfile.read())
+
+        weights_file = model_file.replace('json', 'h5')
         model.load_weights(weights_file)
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=20)
@@ -191,7 +202,14 @@ if __name__ == '__main__':
                         help='Path to data that should be used to train model')
     parser.add_argument('--load', dest='load', type=str,
                         help='Name of the model to load to perform transfer learning.')
+    parser.add_argument('--new_data', dest='new_data', type=str,
+                        help='Location of new data')
 
-    #TODO: adjust to new paramaters in the function call.
     args = parser.parse_args()
-    build_model(args.model, args.data, MISSING, args.epochs)
+    if args.load and args.new_data:
+        build_model(args.model, args.data, args.epochs, args.new_data, args.load)
+    elif args.load:
+        build_model(args.model, args.data, args.epochs, MISSING, args.load)
+    else:
+        build_model(args.model, args.data, args.epochs, MISSING, MISSING)
+

@@ -11,19 +11,25 @@ from PIL import Image
 from PIL import ImageOps
 from flask import Flask, render_template
 from io import BytesIO
+import cv2
 
 from keras.models import model_from_json
-from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array
-
-# Fix error with Keras and TensorFlow
-import tensorflow as tf
-tf.python.control_flow_ops = tf
-
 
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
 prev_image_array = None
+
+def preprocess_img(img, fromColorSpace="BGR"):
+    if fromColorSpace == "BGR":
+       convert = cv2.COLOR_BGR2YUV
+    else:
+        convert = cv2.COLOR_RGB2YUV
+    img = cv2.cvtColor(img, convert)
+    img = img[50:140,:,:]
+    img = cv2.resize(img, (200,66), interpolation=cv2.INTER_AREA)
+    img = np.asfarray(img)
+    return img
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -37,15 +43,23 @@ def telemetry(sid, data):
 
     # The current image from the center camera of the car
     imgString = data["image"]
+    print("about image open")
     image = Image.open(BytesIO(base64.b64decode(imgString)))
-    image_array = np.asarray(image)
-    image_array = image_array[50:140, 0:320]
-    image_array = image_array.reshape(1, 3, 90, 320)
-    image_array = image_array.astype('float32')
-    image_array = image_array/256
+    print("done with image open")
+    X = np.asarray(image)
+    print("about to preprocess")
+    X = preprocess_img(X)
+    print("done with preprocess")
+    print("going to reshape")
+    X = X.reshape(1, X.shape[2], X.shape[0], X.shape[1])
+    print("done to reshape")
+    X = X.astype('float32')
+
     # This model currently assumes that the features of the model are just the images. Feel free to change this.
 
-    prediction = model.predict(image_array, batch_size=1, verbose=1)
+    print("about to predict")
+    prediction = model.predict(X, batch_size=1, verbose=1)
+    print("predicted: " + str(prediction))
     steering_angle = prediction[0][0]#[0][0]
     throttle = max(0.1, -0.15/0.05 * abs(steering_angle) + 0.35)
     speed = 0.2 #prediction[2][0][0]
