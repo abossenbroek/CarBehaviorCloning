@@ -48,7 +48,7 @@ def telemetry(sid, data):
     print("done with image open")
     X = np.asarray(image)
     print("about to preprocess")
-    X = preprocess_img(X)
+    X = preprocess_img(X, fromColorSpace="RGB")
     print("done with preprocess")
     print("going to reshape")
     X = X.reshape(1, X.shape[2], X.shape[0], X.shape[1])
