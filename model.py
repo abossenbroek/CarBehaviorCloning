@@ -25,11 +25,9 @@ def nvidia_model(input):
             kernel_initializer='glorot_normal')(input)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = Dropout(0.5)(x)
     x = Conv2D(24, (5, 5), strides=(2, 2), padding='same', kernel_regularizer=regularizers.l2(0.001),
             kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
-    x = ELU()(x)
     resnet_in = ELU()(x)
     x = Conv2D(36, (5, 5), padding='same', kernel_regularizer=regularizers.l2(0.001),
             kernel_initializer='glorot_normal')(resnet_in)
@@ -199,14 +197,14 @@ def build_model(model_path, data_path, epochs, new_data=MISSING, model_file=MISS
                   loss='mse')
     print(model.summary())
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10)
     checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
             save_best_only=True)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=200, validation_split=0.10,
+              epochs=epochs, batch_size=128, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                   checkpointer,
