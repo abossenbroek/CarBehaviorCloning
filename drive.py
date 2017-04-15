@@ -27,7 +27,7 @@ def preprocess_img(img, fromColorSpace="BGR"):
         convert = cv2.COLOR_RGB2YUV
     img = cv2.cvtColor(img, convert)
     img = img[50:140,:,:]
-    img = cv2.resize(img, (200,66), interpolation=cv2.INTER_AREA)
+    img = cv2.resize(img, (100,66), interpolation=cv2.INTER_AREA)
     img = np.asfarray(img)
     return img
 
