@@ -28,68 +28,80 @@ The summary per layer is as follows,
 _________________________________________________________________
 Layer (type)                 Output Shape              Param #   
 =================================================================
-images (InputLayer)          (None, 3, 66, 100)        0         
+images (InputLayer)          (None, 3, 80, 80)         0         
 _________________________________________________________________
-lambda_1 (Lambda)            (None, 3, 66, 100)        0         
+lambda_1 (Lambda)            (None, 3, 80, 80)         0         
 _________________________________________________________________
-conv2d_1 (Conv2D)            (None, 32, 33, 50)        2432      
+conv2d_1 (Conv2D)            (None, 32, 40, 40)        2432      
 _________________________________________________________________
-batch_normalization_1 (Batch (None, 32, 33, 50)        200       
+batch_normalization_1 (Batch (None, 32, 40, 40)        160       
 _________________________________________________________________
-elu_1 (ELU)                  (None, 32, 33, 50)        0         
+elu_1 (ELU)                  (None, 32, 40, 40)        0         
 _________________________________________________________________
-conv2d_2 (Conv2D)            (None, 24, 17, 25)        19224     
+conv2d_2 (Conv2D)            (None, 24, 20, 20)        19224     
 _________________________________________________________________
-batch_normalization_2 (Batch (None, 24, 17, 25)        100       
+batch_normalization_2 (Batch (None, 24, 20, 20)        80        
 _________________________________________________________________
-elu_2 (ELU)                  (None, 24, 17, 25)        0         
+elu_2 (ELU)                  (None, 24, 20, 20)        0         
 _________________________________________________________________
-conv2d_3 (Conv2D)            (None, 36, 17, 25)        21636     
+conv2d_3 (Conv2D)            (None, 36, 20, 20)        21636     
 _________________________________________________________________
-batch_normalization_3 (Batch (None, 36, 17, 25)        100       
+batch_normalization_3 (Batch (None, 36, 20, 20)        80        
 _________________________________________________________________
-elu_3 (ELU)                  (None, 36, 17, 25)        0         
+elu_3 (ELU)                  (None, 36, 20, 20)        0         
 _________________________________________________________________
-dropout_1 (Dropout)          (None, 36, 17, 25)        0         
+dropout_1 (Dropout)          (None, 36, 20, 20)        0         
 _________________________________________________________________
-conv2d_4 (Conv2D)            (None, 24, 17, 25)        21624     
+conv2d_4 (Conv2D)            (None, 24, 20, 20)        21624     
 _________________________________________________________________
-batch_normalization_4 (Batch (None, 24, 17, 25)        100       
+add_1 (Add)                  (None, 24, 20, 20)        0         
 _________________________________________________________________
-elu_4 (ELU)                  (None, 24, 17, 25)        0         
+batch_normalization_4 (Batch (None, 24, 20, 20)        80        
 _________________________________________________________________
-add_1 (Add)                  (None, 24, 17, 25)        0         
+elu_4 (ELU)                  (None, 24, 20, 20)        0         
 _________________________________________________________________
-conv2d_5 (Conv2D)            (None, 64, 17, 25)        13888     
+conv2d_5 (Conv2D)            (None, 64, 20, 20)        13888     
 _________________________________________________________________
-batch_normalization_5 (Batch (None, 64, 17, 25)        100       
+batch_normalization_5 (Batch (None, 64, 20, 20)        80        
 _________________________________________________________________
-elu_5 (ELU)                  (None, 64, 17, 25)        0         
+elu_5 (ELU)                  (None, 64, 20, 20)        0         
 _________________________________________________________________
-average_pooling2d_1 (Average (None, 64, 14, 22)        0         
+average_pooling2d_1 (Average (None, 64, 9, 9)          0         
 _________________________________________________________________
-flatten_1 (Flatten)          (None, 19712)             0         
+flatten_1 (Flatten)          (None, 5184)              0         
 _________________________________________________________________
-dense_1 (Dense)              (None, 512)               10093056  
+dense_1 (Dense)              (None, 1164)              6035340   
 _________________________________________________________________
-dense_2 (Dense)              (None, 100)               51300     
+dense_2 (Dense)              (None, 512)               596480    
 _________________________________________________________________
-dense_3 (Dense)              (None, 50)                5050      
+dense_3 (Dense)              (None, 100)               51300     
 _________________________________________________________________
-dense_4 (Dense)              (None, 1)                 51        
+dense_4 (Dense)              (None, 50)                5050      
+_________________________________________________________________
+dense_5 (Dense)              (None, 1)                 51        
 _________________________________________________________________
 steering_output (Dense)      (None, 1)                 2         
 =================================================================
-Total params: 10,228,863.0
-Trainable params: 10,228,563.0
-Non-trainable params: 300.0
+Total params: 6,767,507.0
+Trainable params: 6,767,267.0
+Non-trainable params: 240.0
+_________________________________________________________________
 ```
 
 To prevent overfitting we add L2 regularization to each layer with a threshold
-of 0.001. Throughout the network we use ELU activations. The final mapping to 
-the steering angle uses a Tanh activation.
+of 0.001. Throughout the network we use 
+[ELU activations](https://arxiv.org/pdf/1511.07289.pdf). The advantage of ELU
+activation is that they converge faster and lead to higher accuracy and don't
+have problems with vanishing gradient. The final mapping to the steering angle
+uses a Tanh activation. 
 
-We initialize the weights with a Glorot normal distribution.
+After activation we perform Batch Normalization (Ioffe, S. and Szegedy, C. 2014)[http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf] in line with the original
+residual net paper [Zagoruyko, 20016](https://arxiv.org/abs/1605.07146). The
+benefit of the Batch Normalization is that the network does not need to learn
+the scale or the shift in the data flowing in the layer.
+
+We initialize the weights with a Glorot normal distribution 
+[Glorot, X. and Bengo, Y. 2010](http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf).
 
 We optimize the model with the AdamX optimizer and a mean square error (MSE)
 measurement. The weights are saved every time that the model finds a new lowest
@@ -125,7 +137,7 @@ as follows,
 ![cropped image](images/center_camera_crop.png)
 
 this image is 320 by 90 pixels. To reduce the size of the network we rescale
-the image to 100 by 60. We convert the image to YUV color space to reduce the
+the image to 80 by 80. We convert the image to YUV color space to reduce the
 impact shadows on training.
 
 ### Data augmentation
@@ -136,12 +148,17 @@ the range of 0.03 to 0.07. Since the circuit on which the car is trained tends
 to contain more left turns there is less right turn training data. To
 compensate for this we flip the image and take the negative angle. To increase
 the robustness, and reduce overfitting, of network we rotate the non-flipped
-center, right and left steering angle by factor between -5 and 5 degree. Lastly
-we randomly change the brightness of original center, right and left image by
+center, right and left steering angle by factor between -5 and 5 degree. The
+added benefit of flipping the data is that we have a more balanced data set. A key 
+element when training neural networks.
+
+In addition we randomly change the brightness of original center, right and left image by
 converting to HSV color space and randomly multiplying the V channel.
 
-Lastly, to ensure that the steering angles do not change too rapidly we perform
-a moving average of the steering angles.
+### Training data generation
+To generate the training data we drove four lapses where two were close to the
+left yellow line and two close to the right yellow line with recovery. In
+addition we drove drove three lapses with center line.
 
 # Running the program
 
@@ -150,7 +167,7 @@ You can install the requirements using `pip3 install -r requirements.txt`.
 
 ## Train the model
 You can download sample data using `./download_sample_data.sh`. Once the data is downloaded the neural net can be trained using
-`python3 model.py --model . --data data/ --epochs 10 --arch nvidia`.
+`python3 model.py --model . --data data/ --epochs 10 `.
 
 After completing the epochs you can use the model as follows, `python3 drive.py model.json`. You can run the simulator.
 
