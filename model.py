@@ -40,9 +40,9 @@ def nvidia_model(input):
     x = Conv2D(24, (5, 5), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(x)
+    x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = add([x, resnet_in])
     x = Conv2D(64, (3, 3), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(x)
