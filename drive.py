@@ -8,7 +8,6 @@ import eventlet
 import eventlet.wsgi
 import time
 from PIL import Image
-from PIL import ImageOps
 from flask import Flask, render_template
 from io import BytesIO
 import cv2
@@ -27,7 +26,7 @@ def preprocess_img(img, fromColorSpace="BGR"):
         convert = cv2.COLOR_RGB2YUV
     img = cv2.cvtColor(img, convert)
     img = img[50:140,:,:]
-    img = cv2.resize(img, (100,66), interpolation=cv2.INTER_AREA)
+    img = cv2.resize(img, (80, 80), interpolation=cv2.INTER_AREA)
     img = np.asfarray(img)
     return img
 

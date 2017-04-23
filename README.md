@@ -12,14 +12,90 @@ To correctly mimic human behaviour in a car driving simulator We undertook the f
 Below We will discuss each of the steps We undertook.
 
 # Build a Convolutional Neural Network in Keras
-We used two convolutional neural networks architectures to predict the steering
-angle. The first is based on the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf).
-The second one is based on [Squeezenet](https://arxiv.org/abs/1602.07360). The
-benefit of the latter is that it allows to have accuracy as high as
-[AlexNet](http://vision.stanford.edu/teaching/cs231b_spring1415/slides/alexnet_tugce_kyunghee.pdf)
-but with fifty times less parameters. We will discuss the steps that we
-undertook to build, calibrate and test the model below. First we will explain
-how we loaded the data.
+We use a convolutional neural network with a wide residual block to predict the
+steering angle. We started with the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf). 
+Where our implementation is different from NVidia's is that we add a wide
+residual block within the last part of the convolutional layers following
+[Zagoruyko, 20016](https://arxiv.org/abs/1605.07146) as well as batch normalization
+and dropout. To reduce the size of the neural network we added an average pooling
+layer. The final architecture looks as follows,
+
+![final model](images/final_model.png)
+
+The summary per layer is as follows,
+
+```
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+images (InputLayer)          (None, 3, 66, 100)        0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 3, 66, 100)        0         
+_________________________________________________________________
+conv2d_1 (Conv2D)            (None, 32, 33, 50)        2432      
+_________________________________________________________________
+batch_normalization_1 (Batch (None, 32, 33, 50)        200       
+_________________________________________________________________
+elu_1 (ELU)                  (None, 32, 33, 50)        0         
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 24, 17, 25)        19224     
+_________________________________________________________________
+batch_normalization_2 (Batch (None, 24, 17, 25)        100       
+_________________________________________________________________
+elu_2 (ELU)                  (None, 24, 17, 25)        0         
+_________________________________________________________________
+conv2d_3 (Conv2D)            (None, 36, 17, 25)        21636     
+_________________________________________________________________
+batch_normalization_3 (Batch (None, 36, 17, 25)        100       
+_________________________________________________________________
+elu_3 (ELU)                  (None, 36, 17, 25)        0         
+_________________________________________________________________
+dropout_1 (Dropout)          (None, 36, 17, 25)        0         
+_________________________________________________________________
+conv2d_4 (Conv2D)            (None, 24, 17, 25)        21624     
+_________________________________________________________________
+batch_normalization_4 (Batch (None, 24, 17, 25)        100       
+_________________________________________________________________
+elu_4 (ELU)                  (None, 24, 17, 25)        0         
+_________________________________________________________________
+add_1 (Add)                  (None, 24, 17, 25)        0         
+_________________________________________________________________
+conv2d_5 (Conv2D)            (None, 64, 17, 25)        13888     
+_________________________________________________________________
+batch_normalization_5 (Batch (None, 64, 17, 25)        100       
+_________________________________________________________________
+elu_5 (ELU)                  (None, 64, 17, 25)        0         
+_________________________________________________________________
+average_pooling2d_1 (Average (None, 64, 14, 22)        0         
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 19712)             0         
+_________________________________________________________________
+dense_1 (Dense)              (None, 512)               10093056  
+_________________________________________________________________
+dense_2 (Dense)              (None, 100)               51300     
+_________________________________________________________________
+dense_3 (Dense)              (None, 50)                5050      
+_________________________________________________________________
+dense_4 (Dense)              (None, 1)                 51        
+_________________________________________________________________
+steering_output (Dense)      (None, 1)                 2         
+=================================================================
+Total params: 10,228,863.0
+Trainable params: 10,228,563.0
+Non-trainable params: 300.0
+```
+
+To prevent overfitting we add L2 regularization to each layer with a threshold
+of 0.001. Throughout the network we use ELU activations. The final mapping to 
+the steering angle uses a Tanh activation.
+
+We initialize the weights with a Glorot normal distribution.
+
+We optimize the model with the AdamX optimizer and a mean square error (MSE)
+measurement. The weights are saved every time that the model finds a new lowest
+MSE on the validation set. Since we want to keep a large amount of data for training
+we hold out ten percent of the data for validation.
+
 
 ## Model input
 The model input consists of images that are recorded in a car simulator. There
@@ -48,77 +124,24 @@ as follows,
 
 ![cropped image](images/center_camera_crop.png)
 
-this image is 320 by 90 pixels.
+this image is 320 by 90 pixels. To reduce the size of the network we rescale
+the image to 100 by 60. We convert the image to YUV color space to reduce the
+impact shadows on training.
 
 ### Data augmentation
-To augment the dataset we mirror all the images from the left, center and right
-camera and flip them. As training labels for these images we use the negative
-steering angle. For the left and right images we add respectively plus and minus
-a random number between 0 and 0.15 to count as a corrective driving action.
+We perform several data augmentation steps to increase the amount of training data.
+First we use the center image, left and right image. To use the left and right image
+we respectively add and subtract an uniformly randomly distributed number in
+the range of 0.03 to 0.07. Since the circuit on which the car is trained tends
+to contain more left turns there is less right turn training data. To
+compensate for this we flip the image and take the negative angle. To increase
+the robustness, and reduce overfitting, of network we rotate the non-flipped
+center, right and left steering angle by factor between -5 and 5 degree. Lastly
+we randomly change the brightness of original center, right and left image by
+converting to HSV color space and randomly multiplying the V channel.
 
-### Data elimination
-When loading the data we found that many steering angles are around zero. A
-histogram of the steering angles looks as follows,
-
-![steering hist](images/steering_angle_hist.png)
-
-we added a parameter to the model calibration that allows to remove absolute
-steering angles that are lower than a certain threshold.
-
-### Normalization
-We apply batch normalization on the images using Keras builtin functionalities.
-
-### Hold out
-We shuffle the data and hold out 25 percent for validation purposes. This leaves
-us with 39,168 images for training and 13,056 for validation.
-
-# Model design
-We tried to different models. The first is NVidia's model. The benefit of this
-model is that it is used successfully in behaviour cloning for car steering.
-Moreover, the model is not very deep allow for fast calibration. We will discuss
-the details of this model next.
-
-## NVidia model
-The NVidia model consists of the following architecture,
-
-![nvidia model](images/nvidia_model.png)
-
-Totalling 8,995,690 trainable parameters. We use the mean absolute percentage
-error as a cost function and [Adamax](https://arxiv.org/pdf/1412.6980.pdf) for
-stochastic optimization. We use a batch size of 100. We used [Exponentential
-Linear Units](https://arxiv.org/abs/1511.07289) as activation functions and two
-drop out layers to make the model more robust.
-
-The model performance in terms of mean absolute percentage error is show below.
-
-![nvidia model performance](images/nvidia_model_performance.png)
-
-We see that the validation model performance hovers around 100% and its stopped
-early because the validation performance is not improving. The disadvantage of
-the NVidia model is that the weights file are large, around 80 megabytes. This
-can be an issue if we want to deploy the model to an embedded system such as a
-car navigation system. For that reason we research the squeeze net architecture.
-The advantage of the squeeze net model is that it has much less weights than the
-NVidia model.
-
-## Squeezenet model
-The second model that we built is based on the squeezenet architecture. The
-squeezenet architecture is derived from Alexnet, a neural network that won a
-prize in 2012, but with about 50 times less variables. The architecture of the
-network is as follows,
-
-![squeezenet model](images/squeezenet_model.png)
-
-Totalling 2,178,643 trainable parameters, which is a factor 10 times smaller
-than our previous architecture. It achieves this by sampling very often. As for
-the NVidia architecture we use the mean absolute percentage error (MAPE) as a
-cost function and Adamax for stochastic optimization. The model performance in
-terms of MAPE is,
-
-![squeezenet model performance](images/squeezenet_model_performance.png)
-
-We see that despite the dropout layers in the squeeze net the model is not good
-at generalizing the findings it learns on the training set.
+Lastly, to ensure that the steering angles do not change too rapidly we perform
+a moving average of the steering angles.
 
 # Running the program
 

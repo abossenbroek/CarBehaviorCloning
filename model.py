@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import cv2
 import os.path
+from tqdm import tqdm
 
 
 from keras.models import Model
@@ -16,44 +17,48 @@ from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 from keras.layers.pooling import AveragePooling2D
 
 MISSING = object()
-
-image_counter = 0
+MIN_SIDE_ANGLE = 0.03
+MAX_SIDE_ANGLE = 0.07
 
 def nvidia_model(input):
     x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
-            kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(input)
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(input)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = Conv2D(24, (5, 5), strides=(2, 2), padding='same', kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+    x = Conv2D(24, (5, 5), strides=(2, 2), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(36, (5, 5), padding='same', kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(resnet_in)
+    x = Conv2D(36, (5, 5), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(24, (5, 5), padding='same', kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+    x = Conv2D(24, (5, 5), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = add([x, resnet_in])
-    x = Conv2D(64, (3, 3), padding='same', kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+    x = Conv2D(64, (3, 3), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = AveragePooling2D(pool_size=(4,4), strides=(1,1), padding='valid')(x)
+    x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
-   # x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
-   #         kernel_initializer='glorot_normal')(x)
+    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
+              kernel_initializer='glorot_normal')(x)
     x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+              kernel_initializer='glorot_normal')(x)
     x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+              kernel_initializer='glorot_normal')(x)
     x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
-            kernel_initializer='glorot_normal')(x)
+              kernel_initializer='glorot_normal')(x)
     x = Dense(1, activation='tanh')(x)
     return x
 
@@ -64,76 +69,82 @@ def preprocess_img(file, fromColorSpace="BGR"):
 
     img = cv2.imread(file)
     if fromColorSpace == "BGR":
-       convert = cv2.COLOR_BGR2YUV
+        convert = cv2.COLOR_BGR2YUV
     else:
         convert = cv2.COLOR_RGB2YUV
     img = cv2.cvtColor(img, convert)
-    img = img[50:140,:,:]
-    img = cv2.resize(img, (100,66), interpolation=cv2.INTER_AREA)
+    img = img[50:140, :, :]
+    img = cv2.resize(img, (80, 80), interpolation=cv2.INTER_AREA)
     img = np.asarray(img, np.float32)
     return img
 
+
 # From https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9
-def augment_brightness_camera_images(image):
+def augment_brness_camera_images(image):
     image1 = cv2.cvtColor(image, cv2.COLOR_YUV2RGB)
     image1 = cv2.cvtColor(image1, cv2.COLOR_RGB2HSV)
     image1 = np.array(image1, dtype=np.float64)
-    random_bright = .5 + np.random.uniform()
-    image1[:, :, 2] = image1[:, :, 2] * random_bright
+    random_br = .5 + np.random.uniform()
+    image1[:, :, 2] = image1[:, :, 2] * random_br
     image1[:, :, 2][image1[:, :, 2] > 255] = 255
     image1 = np.array(image1, dtype=np.uint8)
     image1 = cv2.cvtColor(cv2.cvtColor(image1, cv2.COLOR_HSV2RGB),
                           cv2.COLOR_RGB2YUV)
     return image1
 
+
 def process_line(line, log_path):
-    center_image_nm, left_image_nm, right_image_nm, angle, throttle, brake, speed = line.split(",")
-    # Generate the angles
-    center_angle = float(angle)
-    # Add random angle adjustment.
-    left_angle = center_angle + np.random.uniform(low=0.10, high=0.25)
-    right_angle = center_angle - np.random.uniform(low=0.10, high=0.25)
+    c_image_nm, l_image_nm, r_image_nm, ang, throttle, brake, speed = line.split(",")
+
     # Load the images
-    left_img = preprocess_img(log_path + "/" + left_image_nm.strip())
-    right_img = preprocess_img(log_path + "/" + right_image_nm.strip())
-    center_img = preprocess_img(log_path + "/" + center_image_nm.strip())
+    l_img = preprocess_img(log_path + "/" + l_image_nm.strip())
+    r_img = preprocess_img(log_path + "/" + r_image_nm.strip())
+    c_img = preprocess_img(log_path + "/" + c_image_nm.strip())
 
+    # Generate the angs
+    c_ang = float(ang)
+    # Add random ang adjustment.
+    l_ang = c_ang + np.random.uniform(low=MIN_SIDE_ANGLE,
+                                               high=MAX_SIDE_ANGLE)
+    r_ang = c_ang - np.random.uniform(low=MIN_SIDE_ANGLE,
+                                               high=MAX_SIDE_ANGLE)
+    c_flp_ang = -c_ang
+    r_flp_ang = -(c_ang - np.random.uniform(low=MIN_SIDE_ANGLE,
+                                                 high=MAX_SIDE_ANGLE))
+    l_flp_ang = -(c_ang + np.random.uniform(low=MIN_SIDE_ANGLE,
+                                                 high=MAX_SIDE_ANGLE))
     # Always add a flipped image
-    center_flipped_angle = -center_angle
-    center_flipped_img = np.fliplr(center_img)
-    right_flipped_angle = -(center_angle - np.random.uniform(low=0.10, high=0.25))
-    right_flipped_img = np.fliplr(right_img)
-    left_flipped_angle = -(center_angle + np.random.uniform(low=0.10, high=0.25))
-    left_flipped_img = np.fliplr(left_img)
+    c_flp_img = np.fliplr(c_img)
+    r_flp_img = np.fliplr(r_img)
+    l_flp_img = np.fliplr(l_img)
 
-    center_br_img = augment_brightness_camera_images(center_img)
-    left_br_img = augment_brightness_camera_images(left_img)
-    right_br_img = augment_brightness_camera_images(right_img)
+    c_br_img = augment_brness_camera_images(c_img)
+    l_br_img = augment_brness_camera_images(l_img)
+    r_br_img = augment_brness_camera_images(r_img)
 
-    rows, cols, colors = center_img.shape
+    rows, cols, colors = c_img.shape
 
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-5,5), 1)
-    center_img = cv2.warpAffine(center_img, rot_mat, (cols, rows))
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    c_img = cv2.warpAffine(c_img, rot_mat, (cols, rows))
 
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-5,5), 1)
-    left_img = cv2.warpAffine(left_img, rot_mat, (cols, rows))
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    l_img = cv2.warpAffine(l_img, rot_mat, (cols, rows))
 
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), np.random.uniform(-5,5), 1)
-    right_img = cv2.warpAffine(right_img, rot_mat, (cols, rows))
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    r_img = cv2.warpAffine(r_img, rot_mat, (cols, rows))
 
-    x = np.concatenate((center_img[np.newaxis, ...],
-                        right_img[np.newaxis, ...],
-                        left_img[np.newaxis, ...],
-                        center_flipped_img[np.newaxis, ...],
-                        right_flipped_img[np.newaxis, ...],
-                        left_flipped_img[np.newaxis, ...],
-                        center_br_img[np.newaxis, ...],
-                        right_br_img[np.newaxis, ...],
-                        left_br_img[np.newaxis, ...],
-                        ), axis=0)
-    y = np.vstack((center_angle, right_angle, left_angle, center_flipped_angle,
-                   right_flipped_angle, left_flipped_angle,
-                   center_angle, right_angle, left_angle,))
+    x = np.concatenate((c_img[np.newaxis, ...], r_img[np.newaxis, ...],
+                        l_img[np.newaxis, ...],
+                        c_flp_img[np.newaxis, ...], r_flp_img[np.newaxis, ...],
+                        l_flp_img[np.newaxis, ...],
+                        c_br_img[np.newaxis, ...], r_br_img[np.newaxis, ...],
+                        l_br_img[np.newaxis, ...],), axis=0)
+    y = np.vstack((c_ang, r_ang, l_ang, c_flp_ang,
+                   r_flp_ang, l_flp_ang,
+                   c_ang, r_ang, l_ang,))
 
     return [x, y]
 
@@ -152,7 +163,7 @@ def load_original_file(log_file, log_path):
     Y = []
 
     f = open(log_file)
-    for i, line in enumerate(f):
+    for i, line in enumerate(tqdm(f)):
         if i < 1:
             continue
         else:
@@ -164,14 +175,14 @@ def load_original_file(log_file, log_path):
     return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
-def build_model(model_path, data_path, epochs, new_data=MISSING, model_file=MISSING):
+def build_model(model_path, data_path, epochs, new_data=MISSING,
+                model_file=MISSING):
     # Load the log file.
     drive_log = "%s/driving_log.csv" % data_path
 
     X, y = load_original_file(drive_log, data_path)
 
     X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
-
 
     img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
@@ -183,7 +194,6 @@ def build_model(model_path, data_path, epochs, new_data=MISSING, model_file=MISS
 
     model = Model(input=img_input,
                   output=steering_output)
-
 
     if model_file is not MISSING:
         print("Loading model from %s" % model_file)
@@ -199,12 +209,12 @@ def build_model(model_path, data_path, epochs, new_data=MISSING, model_file=MISS
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10)
     checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
-            save_best_only=True)
+                                   save_best_only=True)
     csv_logger = CSVLogger('training.log')
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=128, validation_split=0.10,
+              epochs=epochs, batch_size=256, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                   checkpointer,
