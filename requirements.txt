@@ -7,3 +7,5 @@ python-socketio
 eventlet
 flask
 pydot
+tqdm
+opencv-python
