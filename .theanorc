@@ -1,0 +1,23 @@
+[global]
+floatX = float32
+device = cuda0
+optimizer = fast_run
+openmp_elemwise_minsize = 10
+openmp = True
+
+[lib]
+cnmem = 1
+
+[nvcc]
+fastmath = True
+
+[blas]
+#ldflags = -llapack -lblas
+ldflags = -lmkl_rt
+
+[dnn.conv]
+algo_fwd = time_once
+algo_bwd_data = time_once
+
+[dnnv]
+algo_bwd_filter = time_once
