@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 import os.path
 from tqdm import tqdm
-import multiprocessing
 
 from multi_gpu import make_parallel
 
@@ -186,7 +185,7 @@ def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
 
     X, y = load_original_file(drive_log, data_path)
 
-    X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
+    #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
     img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
@@ -196,8 +195,8 @@ def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
 
-    model = Model(input=img_input,
-                  output=steering_output)
+    model = Model(inputs=img_input,
+                  outputs=steering_output)
 
     if model_file is not MISSING:
         print("Loading model from %s" % model_file)
@@ -221,7 +220,7 @@ def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=gpus * 256, validation_split=0.10,
+              epochs=epochs, batch_size=gpus * 1024, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                   checkpointer,
