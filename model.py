@@ -43,18 +43,20 @@ def nvidia_model(input):
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
+    x = AveragePooling2D(pool_size=(5, 5), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
     x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
+    x = Dropout(0.2)(x)
     x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
+    x = Dropout(0.2)(x)
     x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
     x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
@@ -182,7 +184,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     X, y = load_original_file(drive_log, data_path)
 
-    X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
+    #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
     img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
