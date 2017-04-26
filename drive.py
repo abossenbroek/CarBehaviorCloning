@@ -50,7 +50,7 @@ def telemetry(sid, data):
     X = preprocess_img(X, fromColorSpace="RGB")
     print("done with preprocess")
     print("going to reshape")
-    X = X.reshape(1, X.shape[2], X.shape[0], X.shape[1])
+    X = X.reshape(1, X.shape[0], X.shape[1], X.shape[2])
     print("done to reshape")
     X = X.astype('float32')
 

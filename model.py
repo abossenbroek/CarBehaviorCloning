@@ -4,7 +4,6 @@ import cv2
 import os.path
 from tqdm import tqdm
 
-
 from keras.models import Model
 from keras.layers import Conv2D
 from keras.layers.merge import add
@@ -19,6 +18,7 @@ from keras.layers.pooling import AveragePooling2D
 MISSING = object()
 MIN_SIDE_ANGLE = 0.03
 MAX_SIDE_ANGLE = 0.07
+
 
 def nvidia_model(input):
     x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
@@ -182,7 +182,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     X, y = load_original_file(drive_log, data_path)
 
-    X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
+    #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
     img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
@@ -192,8 +192,8 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     steering_output = Dense(1, activation='linear', name='steering_output')(x)
 
-    model = Model(input=img_input,
-                  output=steering_output)
+    model = Model(inputs=img_input,
+                  outputs=steering_output)
 
     if model_file is not MISSING:
         print("Loading model from %s" % model_file)
@@ -203,9 +203,9 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
         weights_file = model_file.replace('json', 'h5')
         model.load_weights(weights_file)
 
-    model.compile(optimizer='adamax',
-                  loss='mse')
     print(model.summary())
+
+    model.compile(optimizer='adamax', loss='mse')
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10)
     checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
@@ -214,7 +214,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=256, validation_split=0.10,
+              epochs=epochs, batch_size=1024, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                   checkpointer,
@@ -253,9 +253,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.load and args.new_data:
-        build_model(args.model, args.data, args.epochs, args.new_data, args.load)
+        build_model(args.model, args.data, args.epochs,
+                    args.new_data, args.load)
     elif args.load:
-        build_model(args.model, args.data, args.epochs, MISSING, args.load)
+        build_model(args.model, args.data, args.epochs,
+                    MISSING, args.load)
     else:
-        build_model(args.model, args.data, args.epochs, MISSING, MISSING)
+        build_model(args.model, args.data, args.epochs,
+                    MISSING, MISSING)
 
