@@ -4,9 +4,6 @@ import cv2
 import os.path
 from tqdm import tqdm
 
-from multi_gpu import make_parallel
-
-
 from keras.models import Model
 from keras.layers import Conv2D
 from keras.layers.merge import add
@@ -178,7 +175,7 @@ def load_original_file(log_file, log_path):
     return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
-def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
+def build_model(model_path, data_path, epochs, new_data=MISSING,
                 model_file=MISSING):
     # Load the log file.
     drive_log = "%s/driving_log.csv" % data_path
@@ -207,9 +204,6 @@ def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
         model.load_weights(weights_file)
 
     print(model.summary())
-    if gpus > 1:
-        # Run in parallel
-        model = make_parallel(model, gpus)
 
     model.compile(optimizer='adamax', loss='mse')
 
@@ -220,7 +214,7 @@ def build_model(model_path, data_path, epochs, gpus, new_data=MISSING,
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=gpus * 1024, validation_split=0.10,
+              epochs=epochs, batch_size=1024, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                   checkpointer,
@@ -256,18 +250,15 @@ if __name__ == '__main__':
                         help='Name of the model to load to perform transfer learning.')
     parser.add_argument('--new_data', dest='new_data', type=str,
                         help='Location of new data')
-    parser.add_argument('--gpus', dest='gpus', type=int,
-                        help='Number of gpus')
-
 
     args = parser.parse_args()
     if args.load and args.new_data:
-        build_model(args.model, args.data, args.epochs, args.gpus,
+        build_model(args.model, args.data, args.epochs,
                     args.new_data, args.load)
     elif args.load:
-        build_model(args.model, args.data, args.epochs, args.gpus,
+        build_model(args.model, args.data, args.epochs,
                     MISSING, args.load)
     else:
-        build_model(args.model, args.data, args.epochs, args.gpus,
+        build_model(args.model, args.data, args.epochs,
                     MISSING, MISSING)
 
