@@ -47,14 +47,33 @@ def nvidia_model(input):
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
+    resnet_in = ELU()(x)
+    x = Conv2D(64, (3, 3), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(resnet_in)
+    x = BatchNormalization()(x)
     x = ELU()(x)
+    x = Conv2D(64, (3, 3), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(resnet_in)
+    x = add([x, resnet_in])
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Conv2D(256, (3, 3), padding='same',
+               kernel_regularizer=regularizers.l2(0.001),
+               kernel_initializer='glorot_normal')(resnet_in)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
     x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
+    x = Dropout(0.3)(x)
     x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
+    x = Dropout(0.3)(x)
     x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
     x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
