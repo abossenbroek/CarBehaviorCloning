@@ -30,7 +30,9 @@ def nvidia_model(input):
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
-    resnet_in = ELU()(x)
+    x = ELU()(x)
+    x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='same')(x)
+    resnet_in = x
     x = Conv2D(36, (5, 5), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
                kernel_initializer='glorot_normal')(resnet_in)
@@ -62,7 +64,7 @@ def nvidia_model(input):
     x = ELU()(x)
     x = Conv2D(256, (3, 3), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
-               kernel_initializer='glorot_normal')(resnet_in)
+               kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
