@@ -53,9 +53,10 @@ def nvidia_model(input):
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
+    x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
                kernel_regularizer=regularizers.l2(0.001),
-               kernel_initializer='glorot_normal')(resnet_in)
+               kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
@@ -69,10 +70,8 @@ def nvidia_model(input):
     x = Flatten()(x)
     x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
-    x = Dropout(0.2)(x)
     x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
-    x = Dropout(0.2)(x)
     x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
               kernel_initializer='glorot_normal')(x)
     x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
@@ -223,7 +222,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     print(model.summary())
 
-    model.compile(optimizer='adamax', loss='mse')
+    model.compile(optimizer='adamax', loss='rmse')
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10)
     checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
@@ -235,11 +234,12 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
               epochs=epochs, batch_size=1024, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
-                  checkpointer,
-                  csv_logger])
+                         checkpointer,
+                         csv_logger])
 
     if new_data is not MISSING:
-        model.fit_generator(generate_input_from_file(new_data + "/driving_log.csv", new_data),
+        file_path = new_data + "/driving_log.csv"
+        model.fit_generator(generate_input_from_file(file_path, new_data),
                             samples_per_epoch=200,
                             epochs=10)
 
