@@ -315,7 +315,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     print(model.summary())
 
-    model.compile(optimizer='adamax', loss='mse')
+    model.compile(optimizer='nadam', loss='mse')
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=10)
     checkpointer = ModelCheckpoint(filepath="./weights.hdf5", verbose=1,
