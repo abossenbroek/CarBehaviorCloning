@@ -7,13 +7,14 @@ from tqdm import tqdm
 from keras.models import Model
 from keras.layers import Conv2D
 from keras.layers.merge import add
-from keras import regularizers
 from keras.layers import Dropout, Flatten, Dense, Input, Lambda
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 from keras.layers.pooling import AveragePooling2D
+from keras.constraints import max_norm
+
 
 MISSING = object()
 MIN_SIDE_ANGLE = 0.03
@@ -22,149 +23,153 @@ MAX_SIDE_ANGLE = 0.07
 
 def nvidia_model(input):
     x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(input)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='same')(x)
     resnet_in = x
     x = Conv2D(32, (5, 5), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(32, (5, 5), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
     resnet_in = x
     x = Conv2D(32, (5, 5), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(32, (5, 5), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Conv2D(64, (5, 5), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
-               kernel_initializer='glorot_normal')(x)
-    x = add([x, resnet_in])
-    x = BatchNormalization()(x)
-    x = ELU()(x)
-    resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
-               kernel_initializer='glorot_normal')(resnet_in)
-    x = BatchNormalization()(x)
-    x = ELU()(x)
-    x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
+    x = ELU()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
     x = Conv2D(64, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal')(x)
+    x = add([x, resnet_in])
+    x = BatchNormalization()(x)
+    resnet_in = ELU()(x)
+    x = Conv2D(64, (3, 3), padding='same',
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal')(resnet_in)
+    x = BatchNormalization()(x)
+    x = ELU()(x)
+    x = Dropout(0.5)(x)
+    x = Conv2D(64, (3, 3), padding='same',
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Conv2D(256, (3, 3), padding='same',
-               kernel_regularizer=regularizers.l2(0.001),
+               kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
-    x = Dense(1164, activation="elu", kernel_regularizer=regularizers.l2(0.001),
+    x = Dense(1164, activation="elu",
+              kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
-    x = Dense(512, kernel_regularizer=regularizers.l2(0.001),
+    x = Dense(512,
+              kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
-    x = Dense(100, kernel_regularizer=regularizers.l2(0.001),
+    x = Dense(100,
+              kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
-    x = Dense(50, kernel_regularizer=regularizers.l2(0.001),
+    x = Dense(50,
+              kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
-    x = Dense(1, activation='tanh')(x)
+    x = Dense(1, activation='linear')(x)
     return x
 
 
