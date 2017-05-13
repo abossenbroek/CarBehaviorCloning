@@ -236,25 +236,47 @@ def process_line(line, log_path):
 
     rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
                                       np.random.uniform(-5, 5), 1)
-    c_img = cv2.warpAffine(c_img, rot_mat, (cols, rows))
+    c_img_rot = cv2.warpAffine(c_img, rot_mat, (cols, rows))
 
     rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
                                       np.random.uniform(-5, 5), 1)
-    l_img = cv2.warpAffine(l_img, rot_mat, (cols, rows))
+    l_img_rot = cv2.warpAffine(l_img, rot_mat, (cols, rows))
 
     rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
                                       np.random.uniform(-5, 5), 1)
-    r_img = cv2.warpAffine(r_img, rot_mat, (cols, rows))
+    r_img_rot = cv2.warpAffine(r_img, rot_mat, (cols, rows))
+
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    c_flp_img_rot = cv2.warpAffine(c_flp_img, rot_mat, (cols, rows))
+
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    l_flp_img_rot = cv2.warpAffine(l_flp_img, rot_mat, (cols, rows))
+
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
+                                      np.random.uniform(-5, 5), 1)
+    r_flp_img_rot = cv2.warpAffine(r_flp_img, rot_mat, (cols, rows))
+
+
 
     x = np.concatenate((c_img[np.newaxis, ...], r_img[np.newaxis, ...],
                         l_img[np.newaxis, ...],
                         c_flp_img[np.newaxis, ...], r_flp_img[np.newaxis, ...],
                         l_flp_img[np.newaxis, ...],
                         c_br_img[np.newaxis, ...], r_br_img[np.newaxis, ...],
-                        l_br_img[np.newaxis, ...],), axis=0)
+                        l_br_img[np.newaxis, ...],
+                        c_img_rot[np.newaxis, ...],
+                        r_img_rot[np.newaxis, ...],
+                        l_img_rot[np.newaxis, ...],
+                        c_flp_img_rot[np.newaxis, ...],
+                        r_flp_img_rot[np.newaxis, ...],
+                        l_flp_img_rot[np.newaxis, ...],), axis=0)
+
     y = np.vstack((c_ang, r_ang, l_ang, c_flp_ang,
                    r_flp_ang, l_flp_ang,
-                   c_ang, r_ang, l_ang,))
+                   c_ang, r_ang, l_ang, c_ang, r_ang, l_ang,
+                   c_flp_ang, r_flp_ang, l_flp_ang,))
 
     return [x, y]
 
