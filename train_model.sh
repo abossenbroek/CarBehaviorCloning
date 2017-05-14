@@ -10,7 +10,8 @@ python3 model.py --model . --data data/ --epochs 150 2>&1 | tee train_model.txt 
   python3 model.py --model . --data car/ --epochs 150 --load model.json 2>&1 | tee car_1.txt && \
   git add car_*.txt && \
   cp weights.hdf5 model.h5 && \
-  git commit -a -m "trained new model with car data" && git push &&
+  git commit -a -m "trained new model with car data" && git push && \
+  /usr/bin/rsync -ar --exclude-from='/home/ubuntu/exclude_me.txt' /home/ubuntu/CarND-CarBehaviourCloning /mnt/s3 && \
   sudo halt
 
 
