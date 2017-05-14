@@ -64,92 +64,92 @@ def nvidia_model(input):
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     resnet_in = ELU()(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(resnet_in)
     x = BatchNormalization()(x)
     x = ELU()(x)
     x = Dropout(0.5)(x)
-    x = Conv2D(64, (3, 3), padding='same',
+    x = Conv2D(64, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = add([x, resnet_in])
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = Conv2D(256, (3, 3), padding='same',
+    x = Conv2D(256, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
