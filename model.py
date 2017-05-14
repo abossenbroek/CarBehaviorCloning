@@ -22,7 +22,7 @@ MAX_SIDE_ANGLE = 0.07
 
 
 def nvidia_model(input):
-    x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
+    x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(input)
     x = BatchNormalization()(x)
@@ -32,7 +32,7 @@ def nvidia_model(input):
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='same')(x)
+    x = AveragePooling2D(pool_size=(4, 4), padding='same')(x)
     resnet_in = x
     x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
@@ -324,7 +324,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=1024, validation_split=0.10,
+              epochs=epochs, batch_size=256, validation_split=0.10,
               shuffle=True,
               callbacks=[early_stopping,
                          checkpointer,
