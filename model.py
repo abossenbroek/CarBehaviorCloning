@@ -2,6 +2,8 @@ import argparse
 import numpy as np
 import cv2
 import os.path
+from scipy import stats
+from imblearn.over_sampling import RandomOverSampler
 from tqdm import tqdm
 
 from keras.models import Model
@@ -17,7 +19,6 @@ from keras.constraints import max_norm
 
 
 MISSING = object()
-MAX_SIDE_ANGLE = 0.07
 
 
 def nvidia_model(input):
@@ -200,56 +201,32 @@ def augment_brness_camera_images(image):
                           cv2.COLOR_RGB2YUV)
     return image1
 
+def rotate_image(image, max_angle = 5):
+    rows, cols, colors = image.shape
+    rot_ang = np.random.uniform(-max_angle, max_angle)
+    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rot_ang, 1)
+    rot_image = cv2.warpAffine(image, rot_mat, (cols, rows))
+
+    return rot_image
+
 
 def process_line(line, log_path):
     c_image_nm, l_image_nm, r_image_nm, ang, throttle, brake, speed = line.split(",")
 
     # Load the images
-    l_img = preprocess_img(log_path + "/" + l_image_nm.strip())
-    r_img = preprocess_img(log_path + "/" + r_image_nm.strip())
     c_img = preprocess_img(log_path + "/" + c_image_nm.strip())
 
     # Generate the angs
     c_ang = float(ang)
-    # Add random ang adjustment.
-    l_ang = c_ang + MAX_SIDE_ANGLE
-    r_ang = c_ang - MAX_SIDE_ANGLE
     c_flp_ang = -c_ang
-    r_flp_ang = -r_ang
-    l_flp_ang = -l_ang
 
     # Always add a flipped image
     c_flp_img = np.fliplr(c_img)
-    r_flp_img = np.fliplr(r_img)
-    l_flp_img = np.fliplr(l_img)
 
-    c_br_img = augment_brness_camera_images(c_img)
-    c_flp_br_img = augment_brness_camera_images(c_flp_img)
+    x = np.concatenate((c_img[np.newaxis, ...],
+                        c_flp_img[np.newaxis, ...],), axis=0)
 
-    rows, cols, colors = c_img.shape
-
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
-                                      np.random.uniform(-5, 5), 1)
-    c_img_rot = cv2.warpAffine(c_img, rot_mat, (cols, rows))
-
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2),
-                                      np.random.uniform(-5, 5), 1)
-    c_flp_img_rot = cv2.warpAffine(c_flp_img, rot_mat, (cols, rows))
-
-
-    x = np.concatenate((c_img[np.newaxis, ...], r_img[np.newaxis, ...],
-                        l_img[np.newaxis, ...],
-                        c_flp_img[np.newaxis, ...], r_flp_img[np.newaxis, ...],
-                        l_flp_img[np.newaxis, ...],
-                        c_br_img[np.newaxis, ...],
-                        c_flp_br_img[np.newaxis, ...],
-                        c_img_rot[np.newaxis, ...],
-                        c_flp_img_rot[np.newaxis, ...],), axis=0)
-
-    y = np.vstack((c_ang, r_ang, l_ang, c_flp_ang,
-                   r_flp_ang, l_flp_ang,
-                   c_ang, c_flp_ang,
-                   c_ang, c_flp_ang,))
+    y = np.vstack((c_ang, c_flp_ang,))
 
     return [x, y]
 
@@ -280,12 +257,51 @@ def load_original_file(log_file, log_path):
     return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
+def balance_data_set(X, y):
+    # We seek to balance the data set such that y has equal groupings. For that
+    # we will take the following steps:
+    # 1. discretize y
+    # 2. remove the mode of y since this is probably very frequent data
+    #    driving straight.
+    # 3. add an id to the data set
+    # 4.
+
+    # Determine the bins that we will use.
+    y_lins = np.linspace(min(y), max(y), 200)
+    # Bin the angle.
+    y_dig = np.digitize(y, y_lins)
+    non_mode_idx = y_dig != stats.mode(y_dig)[0]
+    # Determine the index of X
+    X_idx = np.arange(0, X.shape[0]).reshape(-1, 1)
+    # Let us drop all observations that have a mode value
+    X_idx = X_idx[non_mode_idx]
+    y_dig = y_dig[non_mode_idx]
+
+    # Perform random over sampling.
+    ros = RandomOverSampler(random_state=42)
+    X_res, y_res = ros.fit_sample(X_idx, y_dig)
+
+    # We now have all our indices balanced. We obviously can have a lot of double entries which may cause the neural net
+    # to learn certain aspects of an image.
+
+    # Let us first create the data set.
+    X_b = X[y_res[0]]
+    y_b = y[y_res[0]]
+
+    return list(X_b, y_b)
+
+
+
+
+
 def build_model(model_path, data_path, epochs, new_data=MISSING,
                 model_file=MISSING):
     # Load the log file.
     drive_log = "%s/driving_log.csv" % data_path
 
     X, y = load_original_file(drive_log, data_path)
+
+    X, y = balance_data_set(X, y)
 
     #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
@@ -325,12 +341,6 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
                          checkpointer,
                          csv_logger])
 
-    if new_data is not MISSING:
-        file_path = new_data + "/driving_log.csv"
-        model.fit_generator(generate_input_from_file(file_path, new_data),
-                            samples_per_epoch=200,
-                            epochs=10)
-
     model_json_file = "%s/model.json" % (model_path)
     model_weights_file = "%s/model.h5" % (model_path)
     print("About to save model to '%s'" % (model_json_file))
@@ -354,17 +364,10 @@ if __name__ == '__main__':
                         help='Path to data that should be used to train model')
     parser.add_argument('--load', dest='load', type=str,
                         help='Name of the model to load to perform transfer learning.')
-    parser.add_argument('--new_data', dest='new_data', type=str,
-                        help='Location of new data')
 
     args = parser.parse_args()
-    if args.load and args.new_data:
-        build_model(args.model, args.data, args.epochs,
-                    args.new_data, args.load)
-    elif args.load:
-        build_model(args.model, args.data, args.epochs,
-                    MISSING, args.load)
+    if args.load:
+        build_model(args.model, args.data, args.epochs, args.load)
     else:
-        build_model(args.model, args.data, args.epochs,
-                    MISSING, MISSING)
+        build_model(args.model, args.data, args.epochs, MISSING)
 
