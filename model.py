@@ -168,7 +168,6 @@ def nvidia_model(input):
     x = Dense(50,
               kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
-    x = Dense(1, activation='linear')(x)
     return x
 
 
