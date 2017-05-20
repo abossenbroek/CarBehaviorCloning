@@ -17,22 +17,21 @@ from keras.constraints import max_norm
 
 
 MISSING = object()
-MIN_SIDE_ANGLE = 0.03
 MAX_SIDE_ANGLE = 0.07
 
 
 def nvidia_model(input):
-    x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
+    x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(input)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = Conv2D(32, (5, 5), strides=(2, 2), padding='same',
+    x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(x)
     x = BatchNormalization()(x)
     x = ELU()(x)
-    x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='same')(x)
+    x = AveragePooling2D(pool_size=(4, 4), padding='same')(x)
     resnet_in = x
     x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
@@ -157,9 +156,9 @@ def nvidia_model(input):
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
-    x = Dense(1164, activation="elu",
-              kernel_constraint=max_norm(2.),
-              kernel_initializer='glorot_normal')(x)
+    #x = Dense(1164, activation="elu",
+              #kernel_constraint=max_norm(2.),
+              #kernel_initializer='glorot_normal')(x)
     x = Dense(512,
               kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
@@ -214,15 +213,12 @@ def process_line(line, log_path):
     # Generate the angs
     c_ang = float(ang)
     # Add random ang adjustment.
-    l_ang = c_ang + np.random.uniform(low=MIN_SIDE_ANGLE,
-                                               high=MAX_SIDE_ANGLE)
-    r_ang = c_ang - np.random.uniform(low=MIN_SIDE_ANGLE,
-                                               high=MAX_SIDE_ANGLE)
+    l_ang = c_ang + MAX_SIDE_ANGLE
+    r_ang = c_ang - MAX_SIDE_ANGLE
     c_flp_ang = -c_ang
-    r_flp_ang = -(c_ang - np.random.uniform(low=MIN_SIDE_ANGLE,
-                                                 high=MAX_SIDE_ANGLE))
-    l_flp_ang = -(c_ang + np.random.uniform(low=MIN_SIDE_ANGLE,
-                                                 high=MAX_SIDE_ANGLE))
+    r_flp_ang = -r_ang
+    l_flp_ang = -l_ang
+
     # Always add a flipped image
     c_flp_img = np.fliplr(c_img)
     r_flp_img = np.fliplr(r_img)
