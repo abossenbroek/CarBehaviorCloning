@@ -159,9 +159,9 @@ def nvidia_model(input):
     #x = Dense(1164, activation="elu",
               #kernel_constraint=max_norm(2.),
               #kernel_initializer='glorot_normal')(x)
-    x = Dense(512,
-              kernel_constraint=max_norm(2.),
-              kernel_initializer='glorot_normal')(x)
+    #x = Dense(512,
+    #          kernel_constraint=max_norm(2.),
+    #          kernel_initializer='glorot_normal')(x)
     x = Dense(100,
               kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
