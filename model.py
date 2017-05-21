@@ -248,50 +248,45 @@ def load_original_file(log_file, log_path):
     for i, line in enumerate(tqdm(f)):
         if i < 1:
             continue
+        elif i > 200:
+            break
         else:
             x, y = process_line(line, log_path)
             X.append(x)
             Y.append(y)
+
     f.close()
 
     return [np.concatenate(X, axis=0), np.concatenate(Y, axis=0)]
 
 
-def balance_data_set(X, y):
-    # We seek to balance the data set such that y has equal groupings. For that
-    # we will take the following steps:
-    # 1. discretize y
-    # 2. remove the mode of y since this is probably very frequent data
-    #    driving straight.
-    # 3. add an id to the data set
-    # 4.
-
+def balance_data_set(X, y, bins = 200):
     # Determine the bins that we will use.
-    y_lins = np.linspace(min(y), max(y), 200)
+    hist, y_bins = np.histogram(y, bins = bins)
     # Bin the angle.
-    y_dig = np.digitize(y, y_lins)
-    non_mode_idx = y_dig != stats.mode(y_dig)[0]
+    y_dig = np.digitize(y, y_bins)
+    non_mode_idx = np.where(y_dig != stats.mode(y_dig)[0])
     # Determine the index of X
     X_idx = np.arange(0, X.shape[0]).reshape(-1, 1)
-    # Let us drop all observations that have a mode value
-    X_idx = X_idx[non_mode_idx]
-    y_dig = y_dig[non_mode_idx]
+
+
+    y_dig = y_dig[non_mode_idx].reshape(-1, 1)
+    X_idx = X_idx[non_mode_idx].reshape(-1, 1)
 
     # Perform random over sampling.
     ros = RandomOverSampler(random_state=42)
     X_res, y_res = ros.fit_sample(X_idx, y_dig)
 
-    # We now have all our indices balanced. We obviously can have a lot of double entries which may cause the neural net
-    # to learn certain aspects of an image.
+   # Let us first create the data set.
+    X_b = X[X_res]
+    y_b = y[X_res]
+    # Reshape to proper size.
+    X_b = X_b.reshape(X_b.shape[0], X_b.shape[2], X_b.shape[3], X_b.shape[4])
+    y_b = y_b.reshape(y_b.shape[0])
 
-    # Let us first create the data set.
-    X_b = X[y_res[0]]
-    y_b = y[y_res[0]]
+    assert(X_b.shape[0] == y_b.shape[0])
 
     return list(X_b, y_b)
-
-
-
 
 
 def build_model(model_path, data_path, epochs, new_data=MISSING,
@@ -302,6 +297,8 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
     X, y = load_original_file(drive_log, data_path)
 
     X, y = balance_data_set(X, y)
+
+    # TODO: add transform
 
     #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
 
