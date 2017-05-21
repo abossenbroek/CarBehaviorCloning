@@ -318,7 +318,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
     print("Train sample has size %s" % X_train.shape[0])
 
     # Balance the data set.
-    #X, y = balance_data_set(X_train, y_train)
+    X, y = balance_data_set(X_train, y_train)
     print("After balancing and removing mode we have %s data samples" % X.shape[0])
 
     img_gen = ImageDataGenerator(rotation_range=5,
