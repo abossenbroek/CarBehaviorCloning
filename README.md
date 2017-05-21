@@ -13,7 +13,7 @@ Below We will discuss each of the steps We undertook.
 
 # Build a Convolutional Neural Network in Keras
 We use a convolutional neural network with a wide residual block to predict the
-steering angle. We started with the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf). 
+steering angle. We started with the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf).
 Where our implementation is different from NVidia's is that we add a wide
 residual block within the last part of the convolutional layers following
 [Zagoruyko, 20016](https://arxiv.org/abs/1605.07146) as well as batch normalization
@@ -26,87 +26,67 @@ The summary per layer is as follows,
 
 ```
 _________________________________________________________________
-Layer (type)                 Output Shape              Param #   
+Layer (type)                 Output Shape              Param #
 =================================================================
-images (InputLayer)          (None, 3, 80, 80)         0         
+images (InputLayer)          (None, 120, 120, 3)       0
 _________________________________________________________________
-lambda_1 (Lambda)            (None, 3, 80, 80)         0         
+lambda_1 (Lambda)            (None, 120, 120, 3)       0
 _________________________________________________________________
-conv2d_1 (Conv2D)            (None, 32, 40, 40)        2432      
+conv2d_1 (Conv2D)            (None, 60, 60, 24)        1824
 _________________________________________________________________
-batch_normalization_1 (Batch (None, 32, 40, 40)        160       
+spatial_dropout2d_1 (Spatial (None, 60, 60, 24)        0
 _________________________________________________________________
-elu_1 (ELU)                  (None, 32, 40, 40)        0         
+conv2d_2 (Conv2D)            (None, 30, 30, 36)        21636
 _________________________________________________________________
-conv2d_2 (Conv2D)            (None, 24, 20, 20)        19224     
+spatial_dropout2d_2 (Spatial (None, 30, 30, 36)        0
 _________________________________________________________________
-batch_normalization_2 (Batch (None, 24, 20, 20)        80        
+conv2d_3 (Conv2D)            (None, 15, 15, 48)        43248
 _________________________________________________________________
-elu_2 (ELU)                  (None, 24, 20, 20)        0         
+spatial_dropout2d_3 (Spatial (None, 15, 15, 48)        0
 _________________________________________________________________
-conv2d_3 (Conv2D)            (None, 36, 20, 20)        21636     
+conv2d_4 (Conv2D)            (None, 15, 15, 64)        76864
 _________________________________________________________________
-batch_normalization_3 (Batch (None, 36, 20, 20)        80        
+spatial_dropout2d_4 (Spatial (None, 15, 15, 64)        0
 _________________________________________________________________
-elu_3 (ELU)                  (None, 36, 20, 20)        0         
+conv2d_5 (Conv2D)            (None, 15, 15, 64)        102464
 _________________________________________________________________
-dropout_1 (Dropout)          (None, 36, 20, 20)        0         
+spatial_dropout2d_5 (Spatial (None, 15, 15, 64)        0
 _________________________________________________________________
-conv2d_4 (Conv2D)            (None, 24, 20, 20)        21624     
+flatten_1 (Flatten)          (None, 14400)             0
 _________________________________________________________________
-add_1 (Add)                  (None, 24, 20, 20)        0         
+dropout_1 (Dropout)          (None, 14400)             0
 _________________________________________________________________
-batch_normalization_4 (Batch (None, 24, 20, 20)        80        
+dense_1 (Dense)              (None, 100)               1440100
 _________________________________________________________________
-elu_4 (ELU)                  (None, 24, 20, 20)        0         
+dense_2 (Dense)              (None, 50)                5050
 _________________________________________________________________
-conv2d_5 (Conv2D)            (None, 64, 20, 20)        13888     
+dense_3 (Dense)              (None, 10)                510
 _________________________________________________________________
-batch_normalization_5 (Batch (None, 64, 20, 20)        80        
+dropout_2 (Dropout)          (None, 10)                0
 _________________________________________________________________
-elu_5 (ELU)                  (None, 64, 20, 20)        0         
-_________________________________________________________________
-average_pooling2d_1 (Average (None, 64, 9, 9)          0         
-_________________________________________________________________
-flatten_1 (Flatten)          (None, 5184)              0         
-_________________________________________________________________
-dense_1 (Dense)              (None, 1164)              6035340   
-_________________________________________________________________
-dense_2 (Dense)              (None, 512)               596480    
-_________________________________________________________________
-dense_3 (Dense)              (None, 100)               51300     
-_________________________________________________________________
-dense_4 (Dense)              (None, 50)                5050      
-_________________________________________________________________
-dense_5 (Dense)              (None, 1)                 51        
-_________________________________________________________________
-steering_output (Dense)      (None, 1)                 2         
+steering_output (Dense)      (None, 1)                 11
 =================================================================
-Total params: 6,767,507.0
-Trainable params: 6,767,267.0
-Non-trainable params: 240.0
+Total params: 1,691,707.0
+Trainable params: 1,691,707.0
+Non-trainable params: 0.0
 _________________________________________________________________
 ```
 
-To prevent overfitting we add L2 regularization to each layer with a threshold
-of 0.001. Throughout the network we use 
+To prevent overfitting we add max normalization constraint to each layer.
+Throughout the network we use
 [ELU activations](https://arxiv.org/pdf/1511.07289.pdf). The advantage of ELU
 activation is that they converge faster and lead to higher accuracy and don't
 have problems with vanishing gradient. The final mapping to the steering angle
-uses a Tanh activation. 
+uses a Tanh activation.
 
-After activation we perform Batch Normalization (Ioffe, S. and Szegedy, C. 2014)[http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf] in line with the original
-residual net paper [Zagoruyko, 20016](https://arxiv.org/abs/1605.07146). The
-benefit of the Batch Normalization is that the network does not need to learn
-the scale or the shift in the data flowing in the layer.
-
-We initialize the weights with a Glorot normal distribution 
+We initialize the weights with a Glorot normal distribution
 [Glorot, X. and Bengo, Y. 2010](http://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf).
 
-We optimize the model with the AdamX optimizer and a mean square error (MSE)
-measurement. The weights are saved every time that the model finds a new lowest
-MSE on the validation set. Since we want to keep a large amount of data for training
-we hold out ten percent of the data for validation.
+We optimize the model with the Adam with Nesterov Momentum (NADAM) optimizer
+and a mean square error (MSE) measurement. The weights are saved every time
+that the model finds a new lowest MSE on the validation set. Since we want to
+keep a large amount of data for training we hold out ten percent of the data
+for validation.
 
 
 ## Model input
@@ -137,23 +117,51 @@ as follows,
 ![cropped image](images/center_camera_crop.png)
 
 this image is 320 by 90 pixels. To reduce the size of the network we rescale
-the image to 80 by 80. We convert the image to YUV color space to reduce the
-impact shadows on training.
+the image to 120 by 120.
 
 ### Data augmentation
-We perform several data augmentation steps to increase the amount of training data.
-First we use the center image, left and right image. To use the left and right image
-we respectively add and subtract an uniformly randomly distributed number in
-the range of 0.03 to 0.07. Since the circuit on which the car is trained tends
-to contain more left turns there is less right turn training data. To
-compensate for this we flip the image and take the negative angle. To increase
-the robustness, and reduce overfitting, of network we rotate the non-flipped
-center, right and left steering angle by factor between -5 and 5 degree. The
-added benefit of flipping the data is that we have a more balanced data set. A key 
-element when training neural networks.
+We first balance the data set after which we proceed with transformation of the
+images. Before performing these steps we shuffle and split a training and test
+set. The validation set is not modified.
 
-In addition we randomly change the brightness of original center, right and left image by
-converting to HSV color space and randomly multiplying the V channel.
+#### Balancing
+We perform several data augmentation steps. First we note that driving data is
+likely not to be balanced. If we look at the initial data set we see the following
+distribution of the steering angle over time,
+
+![evolution steering angle](images/orig_data_dist.png)
+
+or in a histogram,
+
+![orig hist](images/orig_data_hist.png)
+
+the mode of the data is a clear outlier and other classes are much less represented.
+This will cause the neural network to have very little information when to take a stronger
+angle. To solve this we balance the data set.
+
+To balance the data set we first bins of the original steering angle. After that we
+digitize the steering angle in the bins. We remove the mode of the data since that will
+likely by straight driving.
+
+With the straight driving removed, we proceed by running the Random Over Sampler
+to equalize the distribution of steering angles. This is implemented in the
+`balance_data_set()` function. The final histogram now looks like,
+
+![balanced hist](images/balanced_hist.png)
+
+Since we have only limited images with extreme steering angles we have to repeat images.
+This could lead to poor generalization of learning. Hence we perform image transformations next.
+
+#### Image transformation
+To perform image transformation we use Keras' `ImageGenerator()` function. This function allows us
+to perform rotation, vertical and horizontal shift, shearing, zooming and channel shift. The
+resulting images look as follows,
+
+![example transformed 1](images/example1.jpeg)
+
+![example transformed 2](images/example2.jpeg)
+
+transforming the images will lead to a better fit of the final model.
 
 ### Training data generation
 To generate the training data we drove four lapses where two were close to the
