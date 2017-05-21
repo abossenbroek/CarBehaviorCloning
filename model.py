@@ -6,22 +6,24 @@ from scipy import stats
 from imblearn.over_sampling import RandomOverSampler
 from tqdm import tqdm
 
+from sklearn.model_selection import train_test_split
+
 from keras.models import Model
 from keras.layers import Conv2D
 from keras.layers.merge import add
-from keras.layers import Dropout, Flatten, Dense, Input, Lambda
+from keras.layers import Dropout, Flatten, Dense, Input, Lambda, SpatialDropout2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import ELU
 from keras.models import model_from_json
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 from keras.layers.pooling import AveragePooling2D
 from keras.constraints import max_norm
-
+from keras.preprocessing.image import ImageDataGenerator
 
 MISSING = object()
 
 
-def nvidia_model(input):
+def complex_model(input):
     x = Conv2D(32, (5, 5), padding='same',
                kernel_constraint=max_norm(2.),
                kernel_initializer='glorot_normal')(input)
@@ -157,18 +159,59 @@ def nvidia_model(input):
     x = AveragePooling2D(pool_size=(4, 4), strides=(2, 2), padding='valid')(x)
 
     x = Flatten()(x)
-    #x = Dense(1164, activation="elu",
-              #kernel_constraint=max_norm(2.),
-              #kernel_initializer='glorot_normal')(x)
-    #x = Dense(512,
-    #          kernel_constraint=max_norm(2.),
-    #          kernel_initializer='glorot_normal')(x)
+    x = Dense(1164, activation="elu",
+              kernel_constraint=max_norm(2.),
+              kernel_initializer='glorot_normal')(x)
+    x = Dense(512,
+              kernel_constraint=max_norm(2.),
+              kernel_initializer='glorot_normal')(x)
     x = Dense(100,
               kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
     x = Dense(50,
               kernel_constraint=max_norm(2.),
               kernel_initializer='glorot_normal')(x)
+    return x
+
+def nvidia_model(input):
+    x = Conv2D(24, (5, 5), padding='same', strides= (2, 2),
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal',
+               activation='elu')(input)
+    x = SpatialDropout2D(0.2)(x)
+    x = Conv2D(36, (5, 5), padding='same', strides= (2, 2),
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal',
+               activation='elu')(x)
+    x = SpatialDropout2D(0.2)(x)
+    x = Conv2D(48, (5, 5), padding='same', strides= (2, 2),
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal',
+               activation='elu')(x)
+    x = SpatialDropout2D(0.2)(x)
+    x = Conv2D(64, (5, 5), padding='same',
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal',
+               activation='elu')(x)
+    x = SpatialDropout2D(0.2)(x)
+    x = Conv2D(64, (5, 5), padding='same',
+               kernel_constraint=max_norm(2.),
+               kernel_initializer='glorot_normal',
+               activation='elu')(x)
+    x = SpatialDropout2D(0.2)(x)
+
+    x = Flatten()(x)
+    x = Dropout(0.5)(x)
+    x = Dense(100, activation="elu",
+              kernel_constraint=max_norm(2.),
+              kernel_initializer='glorot_normal')(x)
+    x = Dense(50,
+              kernel_constraint=max_norm(2.),
+              kernel_initializer='glorot_normal')(x)
+    x = Dense(10,
+              kernel_constraint=max_norm(2.),
+              kernel_initializer='glorot_normal')(x)
+    x = Dropout(0.5)(x)
     return x
 
 
@@ -178,36 +221,12 @@ def preprocess_img(file, fromColorSpace="BGR"):
 
     img = cv2.imread(file)
     if fromColorSpace == "BGR":
-        convert = cv2.COLOR_BGR2YUV
-    else:
-        convert = cv2.COLOR_RGB2YUV
+        convert = cv2.COLOR_BGR2RGB
     img = cv2.cvtColor(img, convert)
-    img = img[50:140, :, :]
-    img = cv2.resize(img, (80, 80), interpolation=cv2.INTER_AREA)
+    img = img[55:140, :, :]
+    img = cv2.resize(img, (120, 120), interpolation=cv2.INTER_CUBIC)
     img = np.asarray(img, np.float32)
     return img
-
-
-# From https://chatbotslife.com/using-augmentation-to-mimic-human-driving-496b569760a9
-def augment_brness_camera_images(image):
-    image1 = cv2.cvtColor(image, cv2.COLOR_YUV2RGB)
-    image1 = cv2.cvtColor(image1, cv2.COLOR_RGB2HSV)
-    image1 = np.array(image1, dtype=np.float64)
-    random_br = .5 + np.random.uniform()
-    image1[:, :, 2] = image1[:, :, 2] * random_br
-    image1[:, :, 2][image1[:, :, 2] > 255] = 255
-    image1 = np.array(image1, dtype=np.uint8)
-    image1 = cv2.cvtColor(cv2.cvtColor(image1, cv2.COLOR_HSV2RGB),
-                          cv2.COLOR_RGB2YUV)
-    return image1
-
-def rotate_image(image, max_angle = 5):
-    rows, cols, colors = image.shape
-    rot_ang = np.random.uniform(-max_angle, max_angle)
-    rot_mat = cv2.getRotationMatrix2D((cols/2, rows/2), rot_ang, 1)
-    rot_image = cv2.warpAffine(image, rot_mat, (cols, rows))
-
-    return rot_image
 
 
 def process_line(line, log_path):
@@ -248,8 +267,6 @@ def load_original_file(log_file, log_path):
     for i, line in enumerate(tqdm(f)):
         if i < 1:
             continue
-        elif i > 200:
-            break
         else:
             x, y = process_line(line, log_path)
             X.append(x)
@@ -275,7 +292,7 @@ def balance_data_set(X, y, bins = 200):
 
     # Perform random over sampling.
     ros = RandomOverSampler(random_state=42)
-    X_res, y_res = ros.fit_sample(X_idx, y_dig)
+    X_res, y_res = ros.fit_sample(X_idx, y_dig.ravel())
 
    # Let us first create the data set.
     X_b = X[X_res]
@@ -286,7 +303,7 @@ def balance_data_set(X, y, bins = 200):
 
     assert(X_b.shape[0] == y_b.shape[0])
 
-    return list(X_b, y_b)
+    return [X_b, y_b]
 
 
 def build_model(model_path, data_path, epochs, new_data=MISSING,
@@ -295,12 +312,37 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
     drive_log = "%s/driving_log.csv" % data_path
 
     X, y = load_original_file(drive_log, data_path)
+    print("Loaded %s data samples" % X.shape[0])
 
-    X, y = balance_data_set(X, y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print("Train sample has size %s" % X_train.shape[0])
 
-    # TODO: add transform
+    # Balance the data set.
+    X, y = balance_data_set(X_train, y_train)
+    print("After balancing and removing mode we have %s data samples" % X.shape[0])
 
-    #X = X.reshape(X.shape[0], X.shape[3], X.shape[1], X.shape[2])
+    img_gen = ImageDataGenerator(rotation_range=5,
+                                 width_shift_range=0.05,
+                                 height_shift_range=0.05,
+                                 shear_range=0.1*np.pi,
+                                 zoom_range=[0.90,1.10],
+                                 fill_mode='constant',
+                                 channel_shift_range=0.9)
+    img_gen.fit(X, seed=42)
+
+    X_aug = []
+    y_aug = []
+
+    for X_batch, y_batch in img_gen.flow(X, y, batch_size=X.shape[0], save_to_dir='augmented'):
+        X_aug = X_batch
+        y_aug = y_batch
+        break
+
+    print("X_aug shape", X_aug.shape)
+    print("y_aug shape", y_aug.shape)
+
+    X = X_aug
+    y = y_aug
 
     img_input = Input(shape=X.shape[1:], dtype='float32', name="images")
 
@@ -332,7 +374,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
 
     model.fit(x=X,
               y=y,
-              epochs=epochs, batch_size=1024, validation_split=0.20,
+              epochs=epochs, batch_size=512, validation_data=[X_test, y_test],
               shuffle=True,
               callbacks=[early_stopping,
                          checkpointer,
