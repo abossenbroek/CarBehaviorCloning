@@ -12,13 +12,9 @@ To correctly mimic human behaviour in a car driving simulator We undertook the f
 Below We will discuss each of the steps We undertook.
 
 # Build a Convolutional Neural Network in Keras
-We use a convolutional neural network with a wide residual block to predict the
-steering angle. We started with the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf).
-Where our implementation is different from NVidia's is that we add a wide
-residual block within the last part of the convolutional layers following
-[Zagoruyko, 20016](https://arxiv.org/abs/1605.07146) as well as batch normalization
-and dropout. To reduce the size of the neural network we added an average pooling
-layer. The final architecture looks as follows,
+We started with the [NVidia architecture](http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf).
+Where our implementation is different from NVidia's is that we added
+spatial dropout layers and final dropout layers.
 
 ![final model](images/final_model.png)
 
