@@ -333,7 +333,7 @@ def build_model(model_path, data_path, epochs, new_data=MISSING,
     X_aug = []
     y_aug = []
 
-    for X_batch, y_batch in img_gen.flow(X, y, batch_size=X.shape[0], save_to_dir='augmented'):
+    for X_batch, y_batch in img_gen.flow(X, y, batch_size=X.shape[0]):
         X_aug = X_batch
         y_aug = y_batch
         break
