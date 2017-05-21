@@ -20,14 +20,9 @@ model = None
 prev_image_array = None
 
 def preprocess_img(img, fromColorSpace="BGR"):
-    if fromColorSpace == "BGR":
-       convert = cv2.COLOR_BGR2YUV
-    else:
-        convert = cv2.COLOR_RGB2YUV
-    img = cv2.cvtColor(img, convert)
-    img = img[50:140,:,:]
-    img = cv2.resize(img, (80, 80), interpolation=cv2.INTER_AREA)
-    img = np.asfarray(img)
+    img = img[55:140,:,:]
+    img = cv2.resize(img, (120, 120), interpolation=cv2.INTER_CUBIC)
+    img = np.asarray(img, np.float32)
     return img
 
 @sio.on('telemetry')
